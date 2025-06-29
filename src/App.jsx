@@ -56,9 +56,9 @@ function App() {
           <span className="text-xl font-semibold">ATOZ Legal Chatbot</span>
         </div>
         <div className="flex gap-2">
-          <button onClick={toggleTheme} className="px-3 py-1 rounded bg-yellow-400 text-black font-semibold">{darkMode ? 'Light' : 'Dark'}</button>
-          <button onClick={clearChat} className="px-3 py-1 rounded bg-red-500 text-white font-semibold">Clear</button>
-          <button onClick={exportToWhatsApp} className="px-3 py-1 rounded bg-green-500 text-white font-semibold">Export</button>
+          <button onClick={toggleTheme} className="px-3 py-1 rounded bg-teal-400 text-black font-semibold">{darkMode ? 'Light' : 'Dark'}</button>
+          <button onClick={clearChat} className="px-3 py-1 rounded bg-magenta-500 text-white font-semibold">Clear</button>
+          <button onClick={exportToWhatsApp} className="px-3 py-1 rounded bg-gold-500 text-white font-semibold">Export</button>
         </div>
       </header>
 
