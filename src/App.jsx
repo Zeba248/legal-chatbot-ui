@@ -17,7 +17,7 @@ function App() {
       });
 
       const data = await res.json();
-      setResponse(data.response);
+      setResponse(data.response || "⚠️ Unexpected response format.");
     } catch (err) {
       console.error("Error:", err);
       setResponse("❌ Backend not responding. Please try again later.");
