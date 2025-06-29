@@ -39,7 +39,7 @@ function App() {
       <header className="bg-yellow-600 text-black font-bold p-4 flex items-center justify-between shadow-lg">
         <div className="flex items-center gap-3">
           <img src="/bot-avatar.png" alt="Bot" className="h-8 w-8 rounded-full border border-black" />
-          <span className="text-xl">ATOZ Legal Chatbot</span>
+          <center><span className="text-xl">ATOZ Legal Chatbot</span></center>
         </div>
       </header>
 
