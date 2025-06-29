@@ -62,9 +62,7 @@ function App() {
         <div ref={scrollRef} />
       </main>
 
-      <footer className="p-3 border-t border-yellow-700 bg-black text-yellow-500 text-center text-xs">
-        ⚖️ This chatbot provides legal guidance based on Indian laws. For serious matters, consult a registered lawyer.
-      </footer>
+    
 
       <div className="p-3 bg-black border-t border-gray-700 flex items-center gap-2">
         <input
