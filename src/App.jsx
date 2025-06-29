@@ -3,24 +3,16 @@ import { useState, useEffect, useRef } from 'react';
 function App() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
-  const [typing, setTyping] = useState(false);
-  const messagesEndRef = useRef(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, typing]);
+  const [loading, setLoading] = useState(false);
+  const scrollRef = useRef(null);
 
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const newMessages = [...messages, { type: 'user', text: input }];
-    setMessages(newMessages);
+    const userMsg = { sender: 'user', text: input };
+    setMessages((prev) => [...prev, userMsg]);
+    setLoading(true);
     setInput('');
-    setTyping(true);
 
     try {
       const res = await fetch("https://legal-bot-backend.onrender.com/ask", {
@@ -29,58 +21,64 @@ function App() {
         body: JSON.stringify({ question: input })
       });
       const data = await res.json();
-      setTyping(false);
-      setMessages(prev => [...prev, { type: 'bot', text: data.response || "⚠️ Unexpected format." }]);
-    } catch (err) {
-      setTyping(false);
-      setMessages(prev => [...prev, { type: 'bot', text: "❌ Backend not responding. Please try again later." }]);
+      const botMsg = { sender: 'bot', text: data.response || "⚠️ Unexpected response." };
+      setMessages((prev) => [...prev, botMsg]);
+    } catch {
+      setMessages((prev) => [...prev, { sender: 'bot', text: "❌ Backend not responding. Please try again later." }]);
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
+
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      <header className="bg-blue-700 text-white text-xl font-semibold px-6 py-4 shadow-md flex items-center gap-2">
-        ⚖️ ATOZ Legal Chatbot
+    <div className="min-h-screen bg-black text-white flex flex-col">
+      <header className="bg-yellow-600 text-black font-bold p-4 flex items-center justify-between shadow-lg">
+        <div className="flex items-center gap-3">
+          <img src="/bot-avatar.png" alt="Bot" className="h-8 w-8 rounded-full border border-black" />
+          <span className="text-xl">ATOZ Legal Chatbot</span>
+        </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+      <main className="flex-1 p-4 overflow-y-auto space-y-4">
         {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`max-w-md px-4 py-2 rounded-xl shadow ${
-              msg.type === 'user'
-                ? 'bg-blue-500 text-white self-end rounded-br-none'
-                : 'bg-white text-gray-900 self-start rounded-bl-none'
-            }`}
-          >
-            {msg.text}
+          <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-md p-3 rounded-xl shadow-md text-sm whitespace-pre-line ${msg.sender === 'user'
+              ? 'bg-yellow-500 text-black'
+              : 'bg-gray-800 text-white flex items-start gap-2'}`}>
+              {msg.sender === 'bot' && <img src="/bot-avatar.png" className="h-6 w-6 rounded-full mt-1" />}
+              <span>{msg.text}</span>
+            </div>
           </div>
         ))}
-
-        {typing && (
-          <div className="bg-gray-200 px-4 py-2 rounded-xl text-gray-600 w-fit shadow self-start">
-            Typing...
+        {loading && (
+          <div className="flex justify-start">
+            <div className="bg-gray-700 text-white px-4 py-2 rounded-xl text-sm shadow animate-pulse">Typing...</div>
           </div>
         )}
-
-        <div ref={messagesEndRef} />
+        <div ref={scrollRef} />
       </main>
 
-      <footer className="p-4 bg-white border-t flex items-center gap-2">
+      <footer className="p-3 border-t border-yellow-700 bg-black text-yellow-500 text-center text-xs">
+        ⚖️ This chatbot provides legal guidance based on Indian laws. For serious matters, consult a registered lawyer.
+      </footer>
+
+      <div className="p-3 bg-black border-t border-gray-700 flex items-center gap-2">
         <input
+          type="text"
+          placeholder="Ask your legal question..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask your legal question..."
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          className="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring"
+          className="flex-1 px-4 py-2 rounded-xl bg-gray-900 text-white border border-yellow-500 placeholder:text-yellow-400"
         />
-        <button
-          onClick={handleSend}
-          className="bg-blue-600 text-white px-5 py-2 rounded-full hover:bg-blue-700"
-        >
+        <button onClick={handleSend} className="bg-yellow-500 text-black font-bold px-5 py-2 rounded-xl hover:bg-yellow-400">
           Send
         </button>
-      </footer>
+      </div>
     </div>
   );
 }
