@@ -98,7 +98,7 @@ function App() {
         />
         <button onClick={handleSend} className="bg-teal-600 text-white font-semibold px-4 py-2 rounded-xl hover:bg-teal-700">Send</button>
         <button onClick={handleReset} className="bg-teal-600 text-white px-3 py-2 rounded-xl hover:bg-teal-700"><FaTrash /></button>
-        <button onClick={exportToWhatsApp} className="bg-teal-600 text-white px-3 py-2 rounded-xl hover:bg-teal-700"><Export/></button>
+        <button onClick={exportToWhatsApp} className="bg-teal-600 text-white px-3 py-2 rounded-xl hover:bg-teal-700"><FaExport/></button>
       </div>
     </div>
   );
