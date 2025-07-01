@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { FaFilePdf, FaPlus } from 'react-icons/fa';
 
 function App() {
   const [input, setInput] = useState('');
@@ -9,7 +8,6 @@ function App() {
   const scrollRef = useRef(null);
   const [history, setHistory] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
-  const fileInputRef = useRef(null);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -42,6 +40,7 @@ function App() {
   const streamMessage = (text) => {
     let i = 0;
     let currentText = '';
+
     const botMessage = { sender: 'bot', text: '' };
     setMessages((prev) => [...prev, botMessage]);
 
@@ -60,9 +59,24 @@ function App() {
       });
 
       i++;
-      if (i < text.length) setTimeout(stream, 25);
+      if (i < text.length) {
+        setTimeout(stream, 25);
+      }
     };
+
     setTimeout(stream, 50);
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const fileName = file.name;
+    const userMsg = { sender: 'user', text: `📄 Uploaded: ${fileName}` };
+    setMessages((prev) => [...prev, userMsg]);
+
+    const botReply = `📄 I got your PDF **${fileName}**.\nKya karna chahte ho?\n👉 Summarize / Extract legal info / Ask questions`;
+    streamMessage(botReply);
   };
 
   useEffect(() => {
@@ -83,42 +97,15 @@ function App() {
     setSelectedChat(chat.id);
   };
 
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: 'bot',
-          text: `📄 I got your PDF **${file.name}**. Kya karna chahte ho? (Summarize / Extract legal info / Ask questions)`
-        }
-      ]);
-    }
-  };
-
   return (
     <div className={`${darkMode ? 'dark' : ''}`}>
       <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
         <aside className="w-64 bg-white dark:bg-gray-800 p-4 space-y-2 border-r dark:border-gray-700">
-          <h2 className="text-lg font-bold mb-2 flex justify-between items-center">
-            🗂️ Saved Chats
-            <button onClick={() => fileInputRef.current.click()} className="text-sm text-teal-600 hover:underline flex items-center gap-1">
-              <FaPlus /> PDF
-            </button>
-          </h2>
-          <input
-            type="file"
-            accept="application/pdf"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            style={{ display: 'none' }}
-          />
+          <h2 className="text-lg font-bold mb-2">🗂️ Saved Chats</h2>
           {history.map((h) => (
             <button
               key={h.id}
-              className={`block w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                selectedChat === h.id ? 'bg-gray-200 dark:bg-gray-700' : ''
-              }`}
+              className={`block w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${selectedChat === h.id ? 'bg-gray-200 dark:bg-gray-700' : ''}`}
               onClick={() => loadChat(h)}
             >
               {h.title || 'Untitled Chat'}
@@ -161,6 +148,16 @@ function App() {
           </main>
 
           <div className="p-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sticky bottom-0 z-10">
+            <label className="cursor-pointer bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+              📄 Upload
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => handleFileUpload(e)}
+                className="hidden"
+              />
+            </label>
+
             <input
               type="text"
               placeholder="Ask your legal question..."
