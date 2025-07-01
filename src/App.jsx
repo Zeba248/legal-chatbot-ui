@@ -1,3 +1,4 @@
+// ✅ Full working updated frontend with doc_id memory
 import { useState, useEffect, useRef } from 'react';
 
 function App() {
@@ -5,6 +6,7 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [docId, setDocId] = useState(null);
   const scrollRef = useRef(null);
   const [history, setHistory] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
@@ -21,7 +23,7 @@ function App() {
       const res = await fetch("https://legal-bot-backend.onrender.com/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: input })
+        body: JSON.stringify({ question: input, doc_id: docId })
       });
 
       const data = await res.json();
@@ -37,6 +39,20 @@ function App() {
     }
   };
 
+  const handleUpload = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch("https://legal-bot-backend.onrender.com/upload", {
+      method: "POST",
+      body: formData
+    });
+
+    const data = await res.json();
+    setDocId(data.doc_id); // ✅ store doc_id for future reference
+    setMessages((prev) => [...prev, { sender: 'bot', text: data.message }]);
+  };
+
   const streamMessage = (text) => {
     let i = 0;
     let currentText = '';
@@ -46,37 +62,17 @@ function App() {
 
     const stream = () => {
       currentText += text[i];
-
       setMessages((prev) => {
         const updated = [...prev];
         if (updated.length > 0 && updated[updated.length - 1].sender === 'bot') {
-          updated[updated.length - 1] = {
-            ...updated[updated.length - 1],
-            text: currentText,
-          };
+          updated[updated.length - 1].text = currentText;
         }
         return updated;
       });
-
       i++;
-      if (i < text.length) {
-        setTimeout(stream, 25);
-      }
+      if (i < text.length) setTimeout(stream, 25);
     };
-
     setTimeout(stream, 50);
-  };
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const fileName = file.name;
-    const userMsg = { sender: 'user', text: `📄 Uploaded: ${fileName}` };
-    setMessages((prev) => [...prev, userMsg]);
-
-    const botReply = `📄 I got your PDF **${fileName}**.\nKya karna chahte ho?\n👉 Summarize / Extract legal info / Ask questions`;
-    streamMessage(botReply);
   };
 
   useEffect(() => {
@@ -90,6 +86,7 @@ function App() {
       setHistory([{ id: Date.now(), title: messages[0]?.text?.slice(0, 30), chat: messages }, ...history]);
     }
     setMessages([]);
+    setDocId(null);
   };
 
   const loadChat = (chat) => {
@@ -97,15 +94,23 @@ function App() {
     setSelectedChat(chat.id);
   };
 
+  const handleFileInput = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type === "application/pdf") handleUpload(file);
+  };
+
   return (
     <div className={`${darkMode ? 'dark' : ''}`}>
       <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-        <aside className="w-64 bg-white dark:bg-gray-800 p-4 space-y-2 border-r dark:border-gray-700">
-          <h2 className="text-lg font-bold mb-2">🗂️ Saved Chats</h2>
+        <aside className="w-64 bg-white dark:bg-gray-800 p-4 space-y-4 border-r dark:border-gray-700">
+          <h2 className="text-lg font-bold">🗂️ Saved Chats</h2>
+          <input type="file" accept="application/pdf" onChange={handleFileInput} className="text-sm" />
           {history.map((h) => (
             <button
               key={h.id}
-              className={`block w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${selectedChat === h.id ? 'bg-gray-200 dark:bg-gray-700' : ''}`}
+              className={`block w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                selectedChat === h.id ? 'bg-gray-200 dark:bg-gray-700' : ''
+              }`}
               onClick={() => loadChat(h)}
             >
               {h.title || 'Untitled Chat'}
@@ -127,13 +132,11 @@ function App() {
           <main className="flex-1 p-4 overflow-y-auto space-y-4">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`max-w-md p-3 rounded-xl shadow text-sm whitespace-pre-line ${
-                    msg.sender === 'user'
-                      ? 'bg-teal-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-start gap-2 hover:bg-gray-300 dark:hover:bg-gray-600 transition'
-                  }`}
-                >
+                <div className={`max-w-md p-3 rounded-xl shadow text-sm whitespace-pre-line ${
+                  msg.sender === 'user'
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-start gap-2 hover:bg-gray-300 dark:hover:bg-gray-600 transition'
+                }`}>
                   {msg.sender === 'bot' && <img src="/bot-avatar.png" className="h-6 w-6 rounded-full mt-1" />}
                   <span>{msg.text}</span>
                 </div>
@@ -148,16 +151,6 @@ function App() {
           </main>
 
           <div className="p-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sticky bottom-0 z-10">
-            <label className="cursor-pointer bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-              📄 Upload
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={(e) => handleFileUpload(e)}
-                className="hidden"
-              />
-            </label>
-
             <input
               type="text"
               placeholder="Ask your legal question..."
@@ -166,8 +159,12 @@ function App() {
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               className="flex-1 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 placeholder:text-gray-500"
             />
-            <button onClick={handleSend} className="bg-teal-600 text-white font-semibold px-5 py-2 rounded-xl hover:bg-teal-500">Send</button>
-            <button onClick={resetChat} className="bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-500">Reset</button>
+            <button onClick={handleSend} className="bg-teal-600 text-white font-semibold px-5 py-2 rounded-xl hover:bg-teal-500">
+              Send
+            </button>
+            <button onClick={resetChat} className="bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-500">
+              Reset
+            </button>
             <a href="https://wa.me/?text=Hello%20ATOZ%20Legal%20Chatbot" target="_blank" rel="noopener noreferrer">
               <button className="bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-500">WhatsApp</button>
             </a>
