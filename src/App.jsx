@@ -6,7 +6,6 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const scrollRef = useRef(null);
-  const sidebarRef = useRef(null);
   const [history, setHistory] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
 
@@ -35,20 +34,18 @@ function App() {
 
   const streamMessage = (text) => {
     let i = 0;
+    setMessages((prev) => [...prev, { sender: 'bot', text: '' }]); // Initialize empty bot message
+
     const stream = () => {
       setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        if (last && last.sender === 'bot') {
-          const updated = [...prev];
-          updated[updated.length - 1].text += text[i];
-          return updated;
-        } else {
-          return [...prev, { sender: 'bot', text: text[i] }];
-        }
+        const updated = [...prev];
+        updated[updated.length - 1].text += text[i];
+        return updated;
       });
       i++;
       if (i < text.length) setTimeout(stream, 20);
     };
+
     stream();
   };
 
@@ -59,6 +56,7 @@ function App() {
   const toggleTheme = () => setDarkMode(!darkMode);
 
   const resetChat = () => {
+    if (messages.length === 0) return;
     setHistory([{ id: Date.now(), title: messages[0]?.text?.slice(0, 30), chat: messages }, ...history]);
     setMessages([]);
   };
@@ -71,8 +69,9 @@ function App() {
   return (
     <div className={`${darkMode ? 'dark' : ''}`}>
       <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        {/* Sidebar */}
         <aside className="w-64 bg-white dark:bg-gray-800 p-4 space-y-2 border-r dark:border-gray-700">
-          <h2 className="text-lg font-bold mb-2">🗂️ Saved Chats</h2>
+          <h2 className="text-lg font-bold mb-2">📁 Saved Chats</h2>
           {history.map((h) => (
             <button
               key={h.id}
@@ -84,6 +83,7 @@ function App() {
           ))}
         </aside>
 
+        {/* Main Chat Area */}
         <div className="flex-1 flex flex-col">
           <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex justify-between items-center shadow-sm">
             <div className="flex items-center gap-3">
@@ -113,9 +113,7 @@ function App() {
             <div ref={scrollRef} />
           </main>
 
-          <footer className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-500 text-center text-xs">
-            ⚖️ This chatbot provides legal guidance based on Indian laws. For serious matters, consult a registered lawyer.
-          </footer>
+          
 
           <div className="p-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sticky bottom-0 z-10">
             <input
