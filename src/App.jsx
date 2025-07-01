@@ -37,32 +37,36 @@ function App() {
     }
   };
 
-  const streamMessage = (text) => {
-    let i = 0;
-    setMessages((prev) => [...prev, { sender: 'bot', text: '' }]);
+ const streamMessage = (text) => {
+  let i = 0;
+  let currentText = '';
 
-    const stream = () => {
-      setMessages((prev) => {
-        const updated = [...prev];
-        if (updated.length > 0 && updated[updated.length - 1].sender === 'bot') {
-          if (i < text.length) {
-            updated[updated.length - 1] = {
-              ...updated[updated.length - 1],
-              text: updated[updated.length - 1].text + text[i],
-            };
-          }
-        }
-        return updated;
-      });
+  const botMessage = { sender: 'bot', text: '' };
+  setMessages((prev) => [...prev, botMessage]);
 
-      i++;
-      if (i < text.length) {
-        setTimeout(stream, 25);
+  const stream = () => {
+    currentText += text[i];
+
+    setMessages((prev) => {
+      const updated = [...prev];
+      if (updated.length > 0 && updated[updated.length - 1].sender === 'bot') {
+        updated[updated.length - 1] = {
+          ...updated[updated.length - 1],
+          text: currentText,
+        };
       }
-    };
+      return updated;
+    });
 
-    setTimeout(stream, 50); // Small delay to ensure rendering
+    i++;
+    if (i < text.length) {
+      setTimeout(stream, 25);
+    }
   };
+
+  // Slight delay before starting stream so that setMessages settles
+  setTimeout(stream, 50);
+};
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
