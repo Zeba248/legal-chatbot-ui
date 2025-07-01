@@ -1,6 +1,5 @@
-// ✅ Complete updated App.js with PDF upload on left, icon, and smart prompt
 import { useState, useEffect, useRef } from 'react';
-import { FaFilePdf, FaWhatsapp, FaSun, FaMoon, FaTrash, FaPaperPlane } from 'react-icons/fa';
+import { FaFilePdf, FaPlus } from 'react-icons/fa';
 
 function App() {
   const [input, setInput] = useState('');
@@ -10,9 +9,11 @@ function App() {
   const scrollRef = useRef(null);
   const [history, setHistory] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
+  const fileInputRef = useRef(null);
 
   const handleSend = async () => {
     if (!input.trim()) return;
+
     const userMsg = { sender: 'user', text: input };
     setMessages((prev) => [...prev, userMsg]);
     setLoading(true);
@@ -24,10 +25,15 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: input })
       });
+
       const data = await res.json();
-      streamMessage(data.response || "⚠️ Unexpected response.");
+      const botReply = data?.response ?? "⚠️ Unexpected response.";
+      streamMessage(botReply);
     } catch {
-      setMessages((prev) => [...prev, { sender: 'bot', text: "❌ Backend not responding." }]);
+      setMessages((prev) => [
+        ...prev,
+        { sender: 'bot', text: "❌ Backend not responding. Please try again later." }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -35,28 +41,28 @@ function App() {
 
   const streamMessage = (text) => {
     let i = 0;
-    setMessages((prev) => [...prev, { sender: 'bot', text: '' }]);
+    let currentText = '';
+    const botMessage = { sender: 'bot', text: '' };
+    setMessages((prev) => [...prev, botMessage]);
 
     const stream = () => {
+      currentText += text[i];
+
       setMessages((prev) => {
         const updated = [...prev];
-        updated[updated.length - 1].text += text[i];
+        if (updated.length > 0 && updated[updated.length - 1].sender === 'bot') {
+          updated[updated.length - 1] = {
+            ...updated[updated.length - 1],
+            text: currentText,
+          };
+        }
         return updated;
       });
-      i++;
-      if (i < text.length) setTimeout(stream, 20);
-    };
-    stream();
-  };
 
-  const handlePDFUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setMessages((prev) => [...prev, { sender: 'pdf', text: file.name }]);
-    setMessages((prev) => [...prev, {
-      sender: 'bot',
-      text: `🧾 I got your PDF: "${file.name}"\nWould you like me to:\n1️⃣ Extract legal insights\n2️⃣ Summarize sections\n3️⃣ Ask a legal question?`
-    }]);
+      i++;
+      if (i < text.length) setTimeout(stream, 25);
+    };
+    setTimeout(stream, 50);
   };
 
   useEffect(() => {
@@ -66,7 +72,9 @@ function App() {
   const toggleTheme = () => setDarkMode(!darkMode);
 
   const resetChat = () => {
-    setHistory([{ id: Date.now(), title: messages[0]?.text?.slice(0, 30), chat: messages }, ...history]);
+    if (messages.length > 0) {
+      setHistory([{ id: Date.now(), title: messages[0]?.text?.slice(0, 30), chat: messages }, ...history]);
+    }
     setMessages([]);
   };
 
@@ -75,67 +83,96 @@ function App() {
     setSelectedChat(chat.id);
   };
 
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: 'bot',
+          text: `📄 I got your PDF **${file.name}**. Kya karna chahte ho? (Summarize / Extract legal info / Ask questions)`
+        }
+      ]);
+    }
+  };
+
   return (
     <div className={`${darkMode ? 'dark' : ''}`}>
       <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-        {/* Left Sidebar */}
-        <aside className="w-64 bg-white dark:bg-gray-800 p-4 space-y-4 border-r dark:border-gray-700">
-          <h2 className="text-lg font-bold">🗂️ Saved Chats</h2>
-          <input type="file" accept="application/pdf" onChange={handlePDFUpload} className="hidden" id="pdfUpload" />
-          <label htmlFor="pdfUpload" className="flex items-center gap-2 p-2 rounded bg-gray-100 dark:bg-gray-700 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600">
-            <FaFilePdf className="text-red-600" /> Upload PDF
-          </label>
+        <aside className="w-64 bg-white dark:bg-gray-800 p-4 space-y-2 border-r dark:border-gray-700">
+          <h2 className="text-lg font-bold mb-2 flex justify-between items-center">
+            🗂️ Saved Chats
+            <button onClick={() => fileInputRef.current.click()} className="text-sm text-teal-600 hover:underline flex items-center gap-1">
+              <FaPlus /> PDF
+            </button>
+          </h2>
+          <input
+            type="file"
+            accept="application/pdf"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            style={{ display: 'none' }}
+          />
           {history.map((h) => (
-            <button key={h.id} className={`block w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${selectedChat === h.id ? 'bg-gray-200 dark:bg-gray-700' : ''}`} onClick={() => loadChat(h)}>
+            <button
+              key={h.id}
+              className={`block w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                selectedChat === h.id ? 'bg-gray-200 dark:bg-gray-700' : ''
+              }`}
+              onClick={() => loadChat(h)}
+            >
               {h.title || 'Untitled Chat'}
             </button>
           ))}
         </aside>
 
-        {/* Main Chat Area */}
         <div className="flex-1 flex flex-col">
-          <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex justify-between items-center">
-            <div className="flex items-center gap-2">
+          <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex justify-between items-center shadow-sm">
+            <div className="flex items-center gap-3">
               <img src="/bot-avatar.png" alt="Bot" className="h-8 w-8 rounded-full border border-gray-300" />
               <span className="text-xl font-semibold">ATOZ Legal Chatbot</span>
             </div>
             <button onClick={toggleTheme} className="px-3 py-1 text-sm bg-teal-600 text-white rounded">
-              {darkMode ? <FaSun /> : <FaMoon />}
+              {darkMode ? '☀️ Light' : '🌙 Dark'}
             </button>
           </header>
 
           <main className="flex-1 p-4 overflow-y-auto space-y-4">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-md p-3 rounded-xl shadow text-sm whitespace-pre-line ${msg.sender === 'user'
-                  ? 'bg-teal-600 text-white'
-                  : msg.sender === 'pdf'
-                    ? 'bg-yellow-100 text-gray-800 border border-yellow-400'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 transition'}
-                `}>
-                  {msg.sender === 'pdf' && <><FaFilePdf className="inline mr-1 text-red-600" /> <strong>{msg.text}</strong></>}
-                  {msg.sender !== 'pdf' && msg.text}
+                <div
+                  className={`max-w-md p-3 rounded-xl shadow text-sm whitespace-pre-line ${
+                    msg.sender === 'user'
+                      ? 'bg-teal-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-start gap-2 hover:bg-gray-300 dark:hover:bg-gray-600 transition'
+                  }`}
+                >
+                  {msg.sender === 'bot' && <img src="/bot-avatar.png" className="h-6 w-6 rounded-full mt-1" />}
+                  <span>{msg.text}</span>
                 </div>
               </div>
             ))}
-            {loading && <div className="text-sm text-gray-500 animate-pulse">Typing...</div>}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-gray-300 text-gray-700 px-4 py-2 rounded-xl text-sm shadow animate-pulse">Typing...</div>
+              </div>
+            )}
             <div ref={scrollRef} />
           </main>
 
-          {/* Bottom Bar */}
-          <div className="p-3 border-t dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center gap-2">
+          <div className="p-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sticky bottom-0 z-10">
             <input
               type="text"
               placeholder="Ask your legal question..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              className="flex-1 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"
+              className="flex-1 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 placeholder:text-gray-500"
             />
-            <button onClick={handleSend} className="bg-teal-600 text-white p-2 rounded-xl"><FaPaperPlane /></button>
-            <button onClick={resetChat} className="bg-teal-600 text-white p-2 rounded-xl"><FaTrash /></button>
+            <button onClick={handleSend} className="bg-teal-600 text-white font-semibold px-5 py-2 rounded-xl hover:bg-teal-500">Send</button>
+            <button onClick={resetChat} className="bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-500">Reset</button>
             <a href="https://wa.me/?text=Hello%20ATOZ%20Legal%20Chatbot" target="_blank" rel="noopener noreferrer">
-              <button className="bg-teal-600 text-white p-2 rounded-xl"><FaWhatsapp /></button>
+              <button className="bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-500">WhatsApp</button>
             </a>
           </div>
         </div>
