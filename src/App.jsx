@@ -33,21 +33,31 @@ function App() {
   };
 
   const streamMessage = (text) => {
-    let i = 0;
-    setMessages((prev) => [...prev, { sender: 'bot', text: '' }]);
+  let i = 0;
 
-    const stream = () => {
-      setMessages((prev) => {
-        const updated = [...prev];
-        updated[updated.length - 1].text += text[i];
-        return updated;
-      });
-      i++;
-      if (i < text.length) setTimeout(stream, 20);
-    };
+  // Add empty bot message first
+  setMessages((prev) => [...prev, { sender: 'bot', text: '' }]);
 
-    stream();
+  const stream = () => {
+    setMessages((prev) => {
+      const updated = [...prev];
+      if (updated.length === 0) return updated;
+
+      updated[updated.length - 1] = {
+        ...updated[updated.length - 1],
+        text: updated[updated.length - 1].text + text[i]
+      };
+
+      return updated;
+    });
+
+    i++;
+    if (i < text.length) setTimeout(stream, 20);
   };
+
+  stream();
+};
+
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -110,9 +120,6 @@ function App() {
             <div ref={scrollRef} />
           </main>
 
-          <footer className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-500 text-center text-xs">
-            ⚖️ This chatbot provides legal guidance based on Indian laws. For serious matters, consult a registered lawyer.
-          </footer>
 
           <div className="p-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sticky bottom-0 z-10">
             <input
