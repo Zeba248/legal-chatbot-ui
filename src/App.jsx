@@ -23,41 +23,46 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: input })
       });
+
       const data = await res.json();
-      streamMessage(data.response || "⚠️ Unexpected response.");
+      const botReply = data?.response ?? "⚠️ Unexpected response.";
+      streamMessage(botReply);
     } catch {
-      setMessages((prev) => [...prev, { sender: 'bot', text: "❌ Backend not responding. Please try again later." }]);
+      setMessages((prev) => [
+        ...prev,
+        { sender: 'bot', text: "❌ Backend not responding. Please try again later." }
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
   const streamMessage = (text) => {
-  let i = 0;
+    let i = 0;
+    setMessages((prev) => [...prev, { sender: 'bot', text: '' }]);
 
-  // Add empty bot message first
-  setMessages((prev) => [...prev, { sender: 'bot', text: '' }]);
+    const stream = () => {
+      setMessages((prev) => {
+        const updated = [...prev];
+        if (updated.length > 0 && updated[updated.length - 1].sender === 'bot') {
+          if (i < text.length) {
+            updated[updated.length - 1] = {
+              ...updated[updated.length - 1],
+              text: updated[updated.length - 1].text + text[i],
+            };
+          }
+        }
+        return updated;
+      });
 
-  const stream = () => {
-    setMessages((prev) => {
-      const updated = [...prev];
-      if (updated.length === 0) return updated;
+      i++;
+      if (i < text.length) {
+        setTimeout(stream, 25);
+      }
+    };
 
-      updated[updated.length - 1] = {
-        ...updated[updated.length - 1],
-        text: updated[updated.length - 1].text + text[i]
-      };
-
-      return updated;
-    });
-
-    i++;
-    if (i < text.length) setTimeout(stream, 20);
+    setTimeout(stream, 50); // Small delay to ensure rendering
   };
-
-  stream();
-};
-
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -66,7 +71,9 @@ function App() {
   const toggleTheme = () => setDarkMode(!darkMode);
 
   const resetChat = () => {
-    setHistory([{ id: Date.now(), title: messages[0]?.text?.slice(0, 30), chat: messages }, ...history]);
+    if (messages.length > 0) {
+      setHistory([{ id: Date.now(), title: messages[0]?.text?.slice(0, 30), chat: messages }, ...history]);
+    }
     setMessages([]);
   };
 
@@ -83,7 +90,9 @@ function App() {
           {history.map((h) => (
             <button
               key={h.id}
-              className={`block w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${selectedChat === h.id ? 'bg-gray-200 dark:bg-gray-700' : ''}`}
+              className={`block w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                selectedChat === h.id ? 'bg-gray-200 dark:bg-gray-700' : ''
+              }`}
               onClick={() => loadChat(h)}
             >
               {h.title || 'Untitled Chat'}
@@ -97,16 +106,21 @@ function App() {
               <img src="/bot-avatar.png" alt="Bot" className="h-8 w-8 rounded-full border border-gray-300" />
               <span className="text-xl font-semibold">ATOZ Legal Chatbot</span>
             </div>
-            <button onClick={toggleTheme} className="px-3 py-1 text-sm bg-teal-600 text-white rounded">{darkMode ? '☀️ Light' : '🌙 Dark'}</button>
+            <button onClick={toggleTheme} className="px-3 py-1 text-sm bg-teal-600 text-white rounded">
+              {darkMode ? '☀️ Light' : '🌙 Dark'}
+            </button>
           </header>
 
           <main className="flex-1 p-4 overflow-y-auto space-y-4">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-md p-3 rounded-xl shadow text-sm whitespace-pre-line ${msg.sender === 'user'
-                  ? 'bg-teal-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-start gap-2 hover:bg-gray-300 dark:hover:bg-gray-600 transition'}
-                `}>
+                <div
+                  className={`max-w-md p-3 rounded-xl shadow text-sm whitespace-pre-line ${
+                    msg.sender === 'user'
+                      ? 'bg-teal-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-start gap-2 hover:bg-gray-300 dark:hover:bg-gray-600 transition'
+                  }`}
+                >
                   {msg.sender === 'bot' && <img src="/bot-avatar.png" className="h-6 w-6 rounded-full mt-1" />}
                   <span>{msg.text}</span>
                 </div>
@@ -120,6 +134,9 @@ function App() {
             <div ref={scrollRef} />
           </main>
 
+          <footer className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-500 text-center text-xs">
+            ⚖️ This chatbot provides legal guidance based on Indian laws. For serious matters, consult a registered lawyer.
+          </footer>
 
           <div className="p-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sticky bottom-0 z-10">
             <input
@@ -130,8 +147,12 @@ function App() {
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               className="flex-1 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 placeholder:text-gray-500"
             />
-            <button onClick={handleSend} className="bg-teal-600 text-white font-semibold px-5 py-2 rounded-xl hover:bg-teal-500">Send</button>
-            <button onClick={resetChat} className="bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-500">Reset</button>
+            <button onClick={handleSend} className="bg-teal-600 text-white font-semibold px-5 py-2 rounded-xl hover:bg-teal-500">
+              Send
+            </button>
+            <button onClick={resetChat} className="bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-500">
+              Reset
+            </button>
             <a href="https://wa.me/?text=Hello%20ATOZ%20Legal%20Chatbot" target="_blank" rel="noopener noreferrer">
               <button className="bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-500">WhatsApp</button>
             </a>
