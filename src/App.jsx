@@ -1,6 +1,3 @@
-
-
-
 // ✅ Full Working Frontend App.jsx for ATOZ Legal Chatbot
 
 import { useState, useEffect, useRef } from 'react';
