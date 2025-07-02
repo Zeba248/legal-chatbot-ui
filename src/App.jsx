@@ -1,119 +1,182 @@
-import React, { useState, useRef } from "react";
-import axios from "axios";
+// ✅ Full working updated frontend with doc_id memory
+import { useState, useEffect, useRef } from 'react';
 
-const App = () => {
-  const [chat, setChat] = useState([]);
-  const [question, setQuestion] = useState("");
+function App() {
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const [docId, setDocId] = useState(null);
-  const [filename, setFilename] = useState(null);
-  const fileInputRef = useRef();
-
-  const handleUpload = async (e) => {
-    const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const res = await axios.post("/upload", formData);
-      setDocId(res.data.doc_id);
-      setFilename(res.data.filename);
-      setChat((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: `\uD83D\uDCC4 I got your PDF **${res.data.filename}** — Kya karna chahte ho?\n👉 Summarize / Extract legal info / Ask questions`,
-        },
-      ]);
-    } catch (err) {
-      alert("Failed to upload PDF");
-    }
-  };
+  const scrollRef = useRef(null);
+  const [history, setHistory] = useState([]);
+  const [selectedChat, setSelectedChat] = useState(null);
 
   const handleSend = async () => {
-    if (!question.trim()) return;
-    const newChat = [...chat, { role: "user", content: question }];
-    setChat(newChat);
-    setQuestion("");
+    if (!input.trim()) return;
+
+    const userMsg = { sender: 'user', text: input };
+    setMessages((prev) => [...prev, userMsg]);
+    setLoading(true);
+    setInput('');
 
     try {
-      const res = await axios.post("/ask", {
-        question,
-        history: newChat,
-        doc_id: docId,
+      const res = await fetch("https://legal-bot-backend.onrender.com/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: input, doc_id: docId })
       });
-      setChat((prev) => [...prev, { role: "assistant", content: res.data.response }]);
-    } catch (err) {
-      setChat((prev) => [
+
+      const data = await res.json();
+      const botReply = data?.response ?? "⚠️ Unexpected response.";
+      streamMessage(botReply);
+    } catch {
+      setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "\u274C Server error. Try again later." },
+        { sender: 'bot', text: "❌ Backend not responding. Please try again later." }
       ]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleReset = () => {
-    setChat([]);
+  const handleUpload = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch("https://legal-bot-backend.onrender.com/upload", {
+      method: "POST",
+      body: formData
+    });
+
+    const data = await res.json();
+    setDocId(data.doc_id); // ✅ store doc_id for future reference
+    setMessages((prev) => [...prev, { sender: 'bot', text: data.message }]);
+  };
+
+  const streamMessage = (text) => {
+    let i = 0;
+    let currentText = '';
+
+    const botMessage = { sender: 'bot', text: '' };
+    setMessages((prev) => [...prev, botMessage]);
+
+    const stream = () => {
+      currentText += text[i];
+      setMessages((prev) => {
+        const updated = [...prev];
+        if (updated.length > 0 && updated[updated.length - 1].sender === 'bot') {
+          updated[updated.length - 1].text = currentText;
+        }
+        return updated;
+      });
+      i++;
+      if (i < text.length) setTimeout(stream, 25);
+    };
+    setTimeout(stream, 50);
+  };
+
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
+
+  const toggleTheme = () => setDarkMode(!darkMode);
+
+  const resetChat = () => {
+    if (messages.length > 0) {
+      setHistory([{ id: Date.now(), title: messages[0]?.text?.slice(0, 30), chat: messages }, ...history]);
+    }
+    setMessages([]);
     setDocId(null);
-    setFilename(null);
-    setQuestion("");
-    fileInputRef.current.value = null;
+  };
+
+  const loadChat = (chat) => {
+    setMessages(chat.chat);
+    setSelectedChat(chat.id);
+  };
+
+  const handleFileInput = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type === "application/pdf") handleUpload(file);
   };
 
   return (
-    <div className="flex h-screen">
-      <div className="w-64 p-4 border-r bg-white">
-        <h2 className="font-bold mb-4">📁 Upload PDF</h2>
-        <input
-          type="file"
-          accept="application/pdf"
-          onChange={handleUpload}
-          ref={fileInputRef}
-          className="mb-4"
-        />
-        <button className="bg-emerald-600 text-white px-4 py-1 rounded w-full" onClick={() => document.body.classList.toggle("dark")}>🌙 Dark Mode</button>
-      </div>
-
-      <div className="flex-1 flex flex-col">
-        <div className="p-4 border-b font-bold text-xl">ATOZ Legal Chatbot</div>
-
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {chat.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`max-w-xl px-4 py-2 rounded-lg whitespace-pre-line ${msg.role === "user" ? "bg-emerald-100 ml-auto" : "bg-gray-100"}`}
+    <div className={`${darkMode ? 'dark' : ''}`}>
+      <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <aside className="w-64 bg-white dark:bg-gray-800 p-4 space-y-4 border-r dark:border-gray-700">
+          <h2 className="text-lg font-bold">🗂️ Saved Chats</h2>
+          <input type="file" accept="application/pdf" onChange={handleFileInput} className="text-sm" />
+          {history.map((h) => (
+            <button
+              key={h.id}
+              className={`block w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                selectedChat === h.id ? 'bg-gray-200 dark:bg-gray-700' : ''
+              }`}
+              onClick={() => loadChat(h)}
             >
-              {msg.content}
-            </div>
+              {h.title || 'Untitled Chat'}
+            </button>
           ))}
-        </div>
+        </aside>
 
-        <div className="p-4 border-t flex items-center gap-2">
-          <button
-            onClick={handleUpload}
-            className="px-3 py-1 border rounded text-sm"
-          >Upload</button>
-          <input
-            className="flex-1 border px-4 py-2 rounded"
-            placeholder="Ask your legal question..."
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          />
-          <button onClick={handleSend} className="bg-emerald-600 text-white px-4 py-2 rounded">
-            Send
-          </button>
-          <button onClick={handleReset} className="border px-3 py-2 rounded">
-            Reset
-          </button>
-          <button
-            className="bg-green-500 text-white px-4 py-2 rounded"
-            onClick={() => window.open("https://wa.me/919999999999", "_blank")}
-          >
-            WhatsApp
-          </button>
+        <div className="flex-1 flex flex-col">
+          <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex justify-between items-center shadow-sm">
+            <div className="flex items-center gap-3">
+              <img src="/bot-avatar.png" alt="Bot" className="h-8 w-8 rounded-full border border-gray-300" />
+              <span className="text-xl font-semibold">ATOZ Legal Chatbot</span>
+            </div>
+            <button onClick={toggleTheme} className="px-3 py-1 text-sm bg-teal-600 text-white rounded">
+              {darkMode ? '☀️ Light' : '🌙 Dark'}
+            </button>
+          </header>
+
+          <main className="flex-1 p-4 overflow-y-auto space-y-4">
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-md p-3 rounded-xl shadow text-sm whitespace-pre-line ${
+                  msg.sender === 'user'
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-start gap-2 hover:bg-gray-300 dark:hover:bg-gray-600 transition'
+                }`}>
+                  {msg.sender === 'bot' && <img src="/bot-avatar.png" className="h-6 w-6 rounded-full mt-1" />}
+                  <span>{msg.text}</span>
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-gray-300 text-gray-700 px-4 py-2 rounded-xl text-sm shadow animate-pulse">Typing...</div>
+              </div>
+            )}
+            <div ref={scrollRef} />
+          </main>
+
+          <div className="p-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2 sticky bottom-0 z-10">
+            <input
+              type="text"
+              placeholder="Ask your legal question..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              className="flex-1 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 placeholder:text-gray-500"
+            />
+            <button onClick={handleSend} className="bg-teal-600 text-white font-semibold px-5 py-2 rounded-xl hover:bg-teal-500">
+              Send
+            </button>
+            <button onClick={resetChat} className="bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-500">
+              Reset
+            </button>
+            <a href="https://wa.me/?text=Hello%20ATOZ%20Legal%20Chatbot" target="_blank" rel="noopener noreferrer">
+              <button className="bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-500">WhatsApp</button>
+            </a>
+          </div>
         </div>
       </div>
     </div>
   );
-};
+}
 
 export default App;
+
+
+
+
