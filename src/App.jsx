@@ -1,122 +1,119 @@
-// ✅ Full Working Frontend App.jsx for ATOZ Legal Chatbot
+import React, { useState, useRef } from "react";
+import axios from "axios";
 
-import { useState, useEffect, useRef } from 'react';
-
-function App() {
-  const [input, setInput] = useState('');
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-  const scrollRef = useRef(null);
+const App = () => {
+  const [chat, setChat] = useState([]);
+  const [question, setQuestion] = useState("");
   const [docId, setDocId] = useState(null);
+  const [filename, setFilename] = useState(null);
+  const fileInputRef = useRef();
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
-
-    const userMsg = { role: 'user', content: input };
-    setMessages((prev) => [...prev, userMsg]);
-    setLoading(true);
-    setInput('');
-
-    try {
-      const res = await fetch("https://your-backend.onrender.com/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: input, history: messages, doc_id: docId })
-      });
-      const data = await res.json();
-      streamMessage(data?.response || '⚠️ No response');
-    } catch {
-      setMessages((prev) => [...prev, { role: 'bot', content: '❌ Server error. Try again later.' }]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const streamMessage = (text) => {
-    let i = 0;
-    let current = '';
-    const botMsg = { role: 'bot', content: '' };
-    setMessages((prev) => [...prev, botMsg]);
-
-    const stream = () => {
-      current += text[i];
-      setMessages((prev) => {
-        const updated = [...prev];
-        updated[updated.length - 1] = { ...updated[updated.length - 1], content: current };
-        return updated;
-      });
-      i++;
-      if (i < text.length) setTimeout(stream, 25);
-    };
-    setTimeout(stream, 50);
-  };
-
-  const handlePDF = async (e) => {
+  const handleUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file || file.type !== 'application/pdf') return;
-
     const formData = new FormData();
     formData.append("file", file);
 
-    const res = await fetch("https://your-backend.onrender.com/upload", {
-      method: "POST",
-      body: formData
-    });
-
-    const data = await res.json();
-    if (data?.doc_id) {
-      setDocId(data.doc_id);
-      setMessages((prev) => [...prev, { role: 'bot', content: data.message }]);
-    } else {
-      setMessages((prev) => [...prev, { role: 'bot', content: '❌ Upload failed.' }]);
+    try {
+      const res = await axios.post("/upload", formData);
+      setDocId(res.data.doc_id);
+      setFilename(res.data.filename);
+      setChat((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `\uD83D\uDCC4 I got your PDF **${res.data.filename}** — Kya karna chahte ho?\n👉 Summarize / Extract legal info / Ask questions`,
+        },
+      ]);
+    } catch (err) {
+      alert("Failed to upload PDF");
     }
   };
 
-  useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  const handleSend = async () => {
+    if (!question.trim()) return;
+    const newChat = [...chat, { role: "user", content: question }];
+    setChat(newChat);
+    setQuestion("");
+
+    try {
+      const res = await axios.post("/ask", {
+        question,
+        history: newChat,
+        doc_id: docId,
+      });
+      setChat((prev) => [...prev, { role: "assistant", content: res.data.response }]);
+    } catch (err) {
+      setChat((prev) => [
+        ...prev,
+        { role: "assistant", content: "\u274C Server error. Try again later." },
+      ]);
+    }
+  };
+
+  const handleReset = () => {
+    setChat([]);
+    setDocId(null);
+    setFilename(null);
+    setQuestion("");
+    fileInputRef.current.value = null;
+  };
 
   return (
-    <div className={darkMode ? 'dark' : ''}>
-      <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-        <aside className="w-64 bg-white dark:bg-gray-800 p-4 border-r dark:border-gray-700">
-          <h2 className="text-lg font-bold mb-4">📄 Upload PDF</h2>
-          <input type="file" accept="application/pdf" onChange={handlePDF} className="text-sm" />
-          <hr className="my-4 border-gray-400" />
-          <button onClick={() => setDarkMode(!darkMode)} className="w-full px-4 py-2 rounded bg-teal-600 text-white">{darkMode ? '☀️ Light Mode' : '🌙 Dark Mode'}</button>
-        </aside>
+    <div className="flex h-screen">
+      <div className="w-64 p-4 border-r bg-white">
+        <h2 className="font-bold mb-4">📁 Upload PDF</h2>
+        <input
+          type="file"
+          accept="application/pdf"
+          onChange={handleUpload}
+          ref={fileInputRef}
+          className="mb-4"
+        />
+        <button className="bg-emerald-600 text-white px-4 py-1 rounded w-full" onClick={() => document.body.classList.toggle("dark")}>🌙 Dark Mode</button>
+      </div>
 
-        <div className="flex-1 flex flex-col">
-          <header className="p-4 border-b bg-white dark:bg-gray-800 dark:border-gray-700 font-semibold text-xl">ATOZ Legal Chatbot</header>
+      <div className="flex-1 flex flex-col">
+        <div className="p-4 border-b font-bold text-xl">ATOZ Legal Chatbot</div>
 
-          <main className="flex-1 p-4 overflow-y-auto space-y-4">
-            {messages.map((msg, idx) => (
-              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-md px-4 py-2 rounded-xl shadow text-sm whitespace-pre-wrap ${msg.role === 'user' ? 'bg-teal-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-black dark:text-white'}`}>
-                  {msg.content}
-                </div>
-              </div>
-            ))}
-            {loading && <div className="text-sm text-gray-400">Typing...</div>}
-            <div ref={scrollRef} />
-          </main>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {chat.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`max-w-xl px-4 py-2 rounded-lg whitespace-pre-line ${msg.role === "user" ? "bg-emerald-100 ml-auto" : "bg-gray-100"}`}
+            >
+              {msg.content}
+            </div>
+          ))}
+        </div>
 
-          <footer className="p-3 flex items-center gap-2 border-t bg-white dark:bg-gray-800 dark:border-gray-700">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Ask your legal query..."
-              className="flex-1 px-4 py-2 rounded bg-gray-100 dark:bg-gray-700 text-black dark:text-white border border-gray-300 dark:border-gray-600"
-            />
-            <button onClick={handleSend} className="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-500">Send</button>
-          </footer>
+        <div className="p-4 border-t flex items-center gap-2">
+          <button
+            onClick={handleUpload}
+            className="px-3 py-1 border rounded text-sm"
+          >Upload</button>
+          <input
+            className="flex-1 border px-4 py-2 rounded"
+            placeholder="Ask your legal question..."
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          />
+          <button onClick={handleSend} className="bg-emerald-600 text-white px-4 py-2 rounded">
+            Send
+          </button>
+          <button onClick={handleReset} className="border px-3 py-2 rounded">
+            Reset
+          </button>
+          <button
+            className="bg-green-500 text-white px-4 py-2 rounded"
+            onClick={() => window.open("https://wa.me/919999999999", "_blank")}
+          >
+            WhatsApp
+          </button>
         </div>
       </div>
     </div>
   );
-}
+};
 
 export default App;
-
