@@ -1,4 +1,4 @@
-  // ✅ Full working updated frontend with doc_id memory (with upload fix)
+// ✅ Updated App.jsx with Real Assistant Behavior (final base used)
 import { useState, useEffect, useRef } from 'react';
 
 function App() {
@@ -43,27 +43,24 @@ function App() {
     const formData = new FormData();
     formData.append('file', file);
 
+    const filenameMsg = { sender: 'user', text: `📄 Uploaded: ${file.name}` };
+    setMessages((prev) => [...prev, filenameMsg]);
+
+    const waitMsg = { sender: 'bot', text: `Thanks! Processing your PDF…` };
+    setMessages((prev) => [...prev, waitMsg]);
+
     try {
       const res = await fetch("https://legal-bot-backend.onrender.com/upload", {
         method: "POST",
         body: formData
       });
-
       const data = await res.json();
-
-      if (!data?.doc_id || !data?.filename) {
-        throw new Error("PDF upload failed or invalid response.");
-      }
-
       setDocId(data.doc_id);
+      streamMessage(data.message);
+    } catch {
       setMessages((prev) => [
         ...prev,
-        { sender: 'bot', text: `📄 I got your PDF: ${data.filename} — kya karna chahte ho?` }
-      ]);
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { sender: 'bot', text: "❌ PDF upload failed. Please try again." }
+        { sender: 'bot', text: "❌ Failed to upload PDF. Please try again." }
       ]);
     }
   };
@@ -71,7 +68,6 @@ function App() {
   const streamMessage = (text) => {
     let i = 0;
     let currentText = '';
-
     const botMessage = { sender: 'bot', text: '' };
     setMessages((prev) => [...prev, botMessage]);
 
@@ -79,15 +75,16 @@ function App() {
       currentText += text[i];
       setMessages((prev) => {
         const updated = [...prev];
-        if (updated.length > 0 && updated[updated.length - 1].sender === 'bot') {
-          updated[updated.length - 1].text = currentText;
+        const last = updated[updated.length - 1];
+        if (last.sender === 'bot') {
+          last.text = currentText;
         }
         return updated;
       });
       i++;
       if (i < text.length) setTimeout(stream, 25);
     };
-    setTimeout(stream, 50);
+    setTimeout(stream, 100);
   };
 
   useEffect(() => {
@@ -123,9 +120,7 @@ function App() {
           {history.map((h) => (
             <button
               key={h.id}
-              className={`block w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                selectedChat === h.id ? 'bg-gray-200 dark:bg-gray-700' : ''
-              }`}
+              className={`block w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${selectedChat === h.id ? 'bg-gray-200 dark:bg-gray-700' : ''}`}
               onClick={() => loadChat(h)}
             >
               {h.title || 'Untitled Chat'}
@@ -174,12 +169,8 @@ function App() {
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               className="flex-1 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 placeholder:text-gray-500"
             />
-            <button onClick={handleSend} className="bg-teal-600 text-white font-semibold px-5 py-2 rounded-xl hover:bg-teal-500">
-              Send
-            </button>
-            <button onClick={resetChat} className="bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-500">
-              Reset
-            </button>
+            <button onClick={handleSend} className="bg-teal-600 text-white font-semibold px-5 py-2 rounded-xl hover:bg-teal-500">Send</button>
+            <button onClick={resetChat} className="bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-500">Reset</button>
             <a href="https://wa.me/?text=Hello%20ATOZ%20Legal%20Chatbot" target="_blank" rel="noopener noreferrer">
               <button className="bg-teal-600 text-white px-4 py-2 rounded-xl hover:bg-teal-500">WhatsApp</button>
             </a>
