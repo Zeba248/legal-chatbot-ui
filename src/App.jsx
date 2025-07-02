@@ -1,4 +1,4 @@
-// ✅ Updated App.jsx with Real Assistant Behavior (final base used)
+// ✅ Updated App.jsx with Hinglish-friendly display and improved message formatting
 import { useState, useEffect, useRef } from 'react';
 
 function App() {
@@ -77,12 +77,12 @@ function App() {
         const updated = [...prev];
         const last = updated[updated.length - 1];
         if (last.sender === 'bot') {
-          last.text = currentText;
+          last.text = currentText.replace(/\n/g, '\n');
         }
         return updated;
       });
       i++;
-      if (i < text.length) setTimeout(stream, 25);
+      if (i < text.length) setTimeout(stream, 20);
     };
     setTimeout(stream, 100);
   };
