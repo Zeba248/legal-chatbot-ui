@@ -1,4 +1,4 @@
-// ✅ Full working updated frontend with doc_id memory
+// ✅ Full working updated frontend with doc_id memory (with upload fix)
 import { useState, useEffect, useRef } from 'react';
 
 function App() {
@@ -43,14 +43,29 @@ function App() {
     const formData = new FormData();
     formData.append('file', file);
 
-    const res = await fetch("https://legal-bot-backend.onrender.com/upload", {
-      method: "POST",
-      body: formData
-    });
+    try {
+      const res = await fetch("https://legal-bot-backend.onrender.com/upload", {
+        method: "POST",
+        body: formData
+      });
 
-    const data = await res.json();
-    setDocId(data.doc_id); // ✅ store doc_id for future reference
-    setMessages((prev) => [...prev, { sender: 'bot', text: data.message }]);
+      const data = await res.json();
+
+      if (!data?.doc_id || !data?.filename) {
+        throw new Error("PDF upload failed or invalid response.");
+      }
+
+      setDocId(data.doc_id);
+      setMessages((prev) => [
+        ...prev,
+        { sender: 'bot', text: `📄 I got your PDF: ${data.filename} — kya karna chahte ho?` }
+      ]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        { sender: 'bot', text: "❌ PDF upload failed. Please try again." }
+      ]);
+    }
   };
 
   const streamMessage = (text) => {
@@ -176,7 +191,3 @@ function App() {
 }
 
 export default App;
-
-
-
-
