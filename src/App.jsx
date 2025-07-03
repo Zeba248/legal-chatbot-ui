@@ -118,31 +118,32 @@ function App() {
           <h2 className="text-lg font-bold">🗂️ Saved Chats</h2>
           <input type="file" accept="application/pdf" onChange={handleFileInput} className="text-sm" />
          {history.map((h) => (
-   <div key={h.id} className="flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded group">
+  <div key={h.id} className="flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded">
+  <button
+    className={`flex-1 text-left p-2 rounded ${
+      selectedChat === h.id ? 'bg-gray-200 dark:bg-gray-700' : ''
+    }`}
+    onClick={() => loadChat(h)}
+  >
+    {h.title || 'Untitled Chat'}
+  </button>
 
-    <button
-      className={`flex-1 text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
-        selectedChat === h.id ? 'bg-gray-200 dark:bg-gray-700' : ''
-      }`}
-      onClick={() => loadChat(h)}
-    >
-      {h.title || 'Untitled Chat'}
-    </button>
-    <button
-      onClick={() => {
-        const updated = history.filter(item => item.id !== h.id);
-        setHistory(updated);
-        if (selectedChat === h.id) {
-          setMessages([]);
-          setSelectedChat(null);
-        }
-      }}
-      className="ml-2 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition duration-300"
-      title="Delete this chat"
-    >
-      🗑️
-    </button>
-  </div>
+  <button
+    onClick={() => {
+      const updated = history.filter(item => item.id !== h.id);
+      setHistory(updated);
+      if (selectedChat === h.id) {
+        setMessages([]);
+        setSelectedChat(null);
+      }
+    }}
+    title="Delete this chat"
+    className="ml-2 text-red-500 hover:text-red-700 transition duration-300 text-lg"
+  >
+    🗑️
+  </button>
+</div>
+
 ))}
 
         </aside>
