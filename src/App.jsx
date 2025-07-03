@@ -1,4 +1,3 @@
-// ✅ Final App.jsx (Smart + Memory + Hinglish + Reset/Delete)
 import { useState, useEffect, useRef } from 'react';
 
 function App() {
@@ -81,7 +80,8 @@ function App() {
   const resetChat = () => {
     if (messages.length > 0) {
       const title = messages[0]?.text?.slice(0, 30);
-      setHistory([{ id: Date.now(), title, chat: messages }, ...history]);
+      const newId = Date.now();
+      setHistory([{ id: newId, title, chat: messages, docId }, ...history]);
     }
     setMessages([]);
     setDocId(null);
@@ -90,6 +90,7 @@ function App() {
 
   const loadChat = (chat) => {
     setMessages(chat.chat);
+    setDocId(chat.docId);
     setSelectedChat(chat.id);
   };
 
@@ -98,6 +99,7 @@ function App() {
     setHistory(updated);
     if (selectedChat === id) {
       setMessages([]);
+      setDocId(null);
       setSelectedChat(null);
     }
   };
