@@ -1,4 +1,4 @@
-// ✅ Updated App.jsx with Hinglish-friendly display and improved message formatting
+// ✅ Final App.jsx with smart UI, delete memory, perfect PDF behavior
 import { useState, useEffect, useRef } from 'react';
 
 function App() {
@@ -106,6 +106,15 @@ function App() {
     setSelectedChat(chat.id);
   };
 
+  const deleteChat = (id) => {
+    const updated = history.filter(h => h.id !== id);
+    setHistory(updated);
+    if (selectedChat === id) {
+      setMessages([]);
+      setSelectedChat(null);
+    }
+  };
+
   const handleFileInput = (e) => {
     const file = e.target.files[0];
     if (file && file.type === "application/pdf") handleUpload(file);
@@ -117,35 +126,23 @@ function App() {
         <aside className="w-64 bg-white dark:bg-gray-800 p-4 space-y-4 border-r dark:border-gray-700">
           <h2 className="text-lg font-bold">🗂️ Saved Chats</h2>
           <input type="file" accept="application/pdf" onChange={handleFileInput} className="text-sm" />
-         {history.map((h) => (
-  <div key={h.id} className="flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded">
-  <button
-    className={`flex-1 text-left p-2 rounded ${
-      selectedChat === h.id ? 'bg-gray-200 dark:bg-gray-700' : ''
-    }`}
-    onClick={() => loadChat(h)}
-  >
-    {h.title || 'Untitled Chat'}
-  </button>
-
-  <button
-    onClick={() => {
-      const updated = history.filter(item => item.id !== h.id);
-      setHistory(updated);
-      if (selectedChat === h.id) {
-        setMessages([]);
-        setSelectedChat(null);
-      }
-    }}
-    title="Delete this chat"
-    className="ml-2 text-red-500 hover:text-red-700 transition duration-300 text-lg"
-  >
-    🗑️
-  </button>
-</div>
-
-))}
-
+          {history.map((h) => (
+            <div key={h.id} className="flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded">
+              <button
+                className={`flex-1 text-left p-2 rounded ${selectedChat === h.id ? 'bg-gray-200 dark:bg-gray-700' : ''}`}
+                onClick={() => loadChat(h)}
+              >
+                {h.title || 'Untitled Chat'}
+              </button>
+              <button
+                onClick={() => deleteChat(h.id)}
+                title="Delete this chat"
+                className="ml-2 text-red-500 hover:text-red-700 transition duration-300 text-lg"
+              >
+                🗑️
+              </button>
+            </div>
+          ))}
         </aside>
 
         <div className="flex-1 flex flex-col">
