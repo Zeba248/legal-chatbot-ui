@@ -137,7 +137,7 @@ function App() {
           setSelectedChat(null);
         }
       }}
-      className="ml-2 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition"
+      className="ml-2 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition duration-300"
       title="Delete this chat"
     >
       🗑️
