@@ -118,7 +118,8 @@ function App() {
           <h2 className="text-lg font-bold">🗂️ Saved Chats</h2>
           <input type="file" accept="application/pdf" onChange={handleFileInput} className="text-sm" />
          {history.map((h) => (
-  <div key={h.id} className="flex items-center justify-between group">
+   <div key={h.id} className="flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded group">
+
     <button
       className={`flex-1 text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${
         selectedChat === h.id ? 'bg-gray-200 dark:bg-gray-700' : ''
