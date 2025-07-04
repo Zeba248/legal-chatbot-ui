@@ -98,7 +98,6 @@ function App() {
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'} flex`}>
-      {/* Sidebar */}
       <div className="w-64 p-4 border-r overflow-y-auto">
         <h2 className="text-xl font-bold mb-2">Saved Chats</h2>
         {history.map((h) => (
@@ -116,7 +115,6 @@ function App() {
         ))}
       </div>
 
-      {/* Main Chat */}
       <div className="flex-1 flex flex-col">
         <div className="flex justify-between p-4 border-b">
           <h1 className="text-2xl font-bold">ATOZ Legal Chatbot</h1>
@@ -136,11 +134,11 @@ function App() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto flex flex-col p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((m, i) => (
             <div
               key={i}
-              className={`p-3 rounded-lg max-w-xl whitespace-pre-line ${m.sender === 'user' ? 'bg-blue-100 self-end text-right' : 'bg-gray-100 self-start text-left'}`}
+              className={`p-3 rounded-lg max-w-xl ${m.sender === 'user' ? 'bg-blue-100 self-end text-right ml-auto' : 'bg-gray-100 self-start text-left mr-auto'}`}
             >
               {m.text}
             </div>
