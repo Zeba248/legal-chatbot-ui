@@ -1,8 +1,8 @@
-// ✅ Final App.jsx (Smart + Memory + Hinglish + Reset/Delete Fixed)
-import { useState, useEffect, useRef } from 'react';
+// ✅ Updated App.jsx (Resume chats with PDF+Memory binding)
+import { useState, useEffect, useRef } from "react";
 
 function App() {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [docId, setDocId] = useState(null);
@@ -10,163 +10,126 @@ function App() {
   const [selectedChat, setSelectedChat] = useState(null);
   const scrollRef = useRef(null);
 
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   const handleSend = async () => {
     if (!input.trim()) return;
-    const userMsg = { sender: 'user', text: input };
+    const userMsg = { sender: "user", text: input };
     setMessages((prev) => [...prev, userMsg]);
     setLoading(true);
-    setInput('');
+    setInput("");
 
     try {
       const res = await fetch("https://legal-bot-backend.onrender.com/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: input, doc_id: docId })
+        body: JSON.stringify({ question: input, doc_id: docId }),
       });
       const data = await res.json();
-      const botReply = data?.response ?? "⚠️ Unexpected response.";
-      streamMessage(botReply);
-    } catch {
-      setMessages((prev) => [...prev, { sender: 'bot', text: "❌ Backend not responding. Please try again later." }]);
+      setMessages((prev) => [...prev, { sender: "bot", text: data.response }]);
+    } catch (err) {
+      setMessages((prev) => [...prev, { sender: "bot", text: "⚠️ Error fetching response" }]);
     } finally {
       setLoading(false);
     }
   };
 
-  const streamMessage = (text) => {
-    let i = 0;
-    let currentText = '';
-    const botMessage = { sender: 'bot', text: '' };
-    setMessages((prev) => [...prev, botMessage]);
-
-    const stream = () => {
-      currentText += text[i];
-      setMessages((prev) => {
-        const updated = [...prev];
-        const last = updated[updated.length - 1];
-        if (last.sender === 'bot') last.text = currentText;
-        return updated;
-      });
-      i++;
-      if (i < text.length) setTimeout(stream, 20);
-    };
-    setTimeout(stream, 100);
-  };
-
-  const handleUpload = async (file) => {
+  const handleUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
     const formData = new FormData();
-    formData.append('file', file);
-    setMessages((prev) => [...prev, { sender: 'user', text: `📄 Uploaded: ${file.name}` }]);
-    setMessages((prev) => [...prev, { sender: 'bot', text: "Thanks! Processing your PDF…" }]);
+    formData.append("file", file);
 
     try {
       const res = await fetch("https://legal-bot-backend.onrender.com/upload", {
         method: "POST",
-        body: formData
+        body: formData,
       });
       const data = await res.json();
       setDocId(data.doc_id);
-      streamMessage(data.message);
-    } catch {
-      setMessages((prev) => [...prev, { sender: 'bot', text: "❌ Failed to upload PDF. Please try again." }]);
+      setMessages((prev) => [...prev, { sender: "bot", text: data.message }]);
+    } catch (err) {
+      setMessages((prev) => [...prev, { sender: "bot", text: "⚠️ Upload failed" }]);
     }
   };
 
-  const handleFileInput = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type === "application/pdf") handleUpload(file);
-  };
-
-  const resetChat = () => {
-    if (messages.length > 0) {
-      const title = messages[0]?.text?.slice(0, 30);
-      setHistory([{ id: Date.now(), title, chat: messages, doc_id: docId }, ...history]);
+  const handleReset = () => {
+    if (messages.length) {
+      const chatToSave = { id: docId, title: messages[0]?.text.slice(0, 30), messages };
+      setHistory((prev) => [...prev, chatToSave]);
     }
     setMessages([]);
     setDocId(null);
     setSelectedChat(null);
   };
 
-  const loadChat = (chat) => {
-    setMessages(chat.chat);
-    setDocId(chat.doc_id || null);
-    setSelectedChat(chat.id);
+  const handleSelectChat = (chat) => {
+    setMessages(chat.messages);
+    setDocId(chat.id);
+    setSelectedChat(chat);
   };
 
-  const deleteChat = (id) => {
-    const updated = history.filter(item => item.id !== id);
-    setHistory(updated);
-    if (selectedChat === id) {
+  const handleDelete = (id) => {
+    setHistory((prev) => prev.filter((h) => h.id !== id));
+    if (selectedChat?.id === id) {
       setMessages([]);
-      setSelectedChat(null);
+      setDocId(null);
     }
   };
 
-  useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
-
   return (
-    <div className="min-h-screen flex bg-gray-50 text-gray-900">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white p-4 border-r space-y-4">
-        <h2 className="text-lg font-bold">🗂️ Saved Chats</h2>
-        <input type="file" accept="application/pdf" onChange={handleFileInput} className="text-sm" />
+    <div className="p-4 max-w-3xl mx-auto">
+      <h1 className="text-xl font-bold mb-4 text-center">ATOZ Legal Chatbot</h1>
+
+      <div className="mb-2 flex gap-2 overflow-x-auto">
         {history.map((h) => (
-          <div key={h.id} className="flex items-center justify-between hover:bg-gray-100 p-1 rounded">
-            <button
-              className={`flex-1 text-left p-2 rounded ${selectedChat === h.id ? 'bg-gray-200' : ''}`}
-              onClick={() => loadChat(h)}
+          <button
+            key={h.id}
+            onClick={() => handleSelectChat(h)}
+            className="bg-gray-200 px-2 py-1 rounded text-sm"
+          >
+            {h.title}
+            <span
+              onClick={(e) => { e.stopPropagation(); handleDelete(h.id); }}
+              className="ml-1 text-red-500 cursor-pointer"
             >
-              {h.title || 'Untitled Chat'}
-            </button>
-            <button
-              onClick={() => deleteChat(h.id)}
-              title="Delete"
-              className="ml-2 text-red-500 hover:text-red-700 text-lg"
-            >
-              🗑️
-            </button>
+              ✕
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <div className="border rounded p-4 h-[400px] overflow-y-auto bg-white">
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            className={`mb-2 ${msg.sender === "user" ? "text-right" : "text-left"}`}
+          >
+            <span className={`inline-block px-3 py-2 rounded ${msg.sender === "user" ? "bg-blue-100" : "bg-gray-100"}`}>
+              {msg.text}
+            </span>
           </div>
         ))}
-      </aside>
+        <div ref={scrollRef} />
+      </div>
 
-      {/* Main Chat */}
-      <div className="flex-1 flex flex-col">
-        <header className="bg-white border-b p-4 flex justify-between items-center shadow-sm">
-          <div className="text-xl font-semibold">ATOZ Legal Chatbot</div>
-        </header>
-
-        <main className="flex-1 p-4 overflow-y-auto space-y-4">
-          {messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-md p-3 rounded-xl text-sm whitespace-pre-line ${
-                msg.sender === 'user' ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-900'
-              }`}>
-                {msg.text}
-              </div>
-            </div>
-          ))}
-          {loading && (
-            <div className="flex justify-start">
-              <div className="bg-gray-300 text-gray-700 px-4 py-2 rounded-xl text-sm shadow animate-pulse">Typing...</div>
-            </div>
-          )}
-          <div ref={scrollRef} />
-        </main>
-
-        <footer className="p-3 bg-white border-t flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="Ask your legal question..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            className="flex-1 px-4 py-2 rounded-xl border placeholder:text-gray-500"
-          />
-          <button onClick={handleSend} className="bg-teal-600 text-white px-4 py-2 rounded-xl">Send</button>
-          <button onClick={resetChat} className="bg-teal-600 text-white px-4 py-2 rounded-xl">Reset</button>
-        </footer>
+      <div className="flex gap-2 mt-4">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          className="flex-1 border p-2 rounded"
+          placeholder="Ask your legal question..."
+        />
+        <button onClick={handleSend} className="bg-blue-500 text-white px-4 rounded">Send</button>
+        <button onClick={handleReset} className="bg-yellow-400 text-white px-3 rounded">Reset</button>
+        <label className="bg-green-500 text-white px-3 rounded cursor-pointer">
+          Upload
+          <input type="file" className="hidden" onChange={handleUpload} />
+        </label>
       </div>
     </div>
   );
