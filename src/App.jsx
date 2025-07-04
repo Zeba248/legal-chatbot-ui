@@ -5,7 +5,7 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [docId, setDocId] = useState(null);
+  const [docId, setDocId] = useState(() => Date.now().toString());
   const [history, setHistory] = useState(() => {
     const saved = localStorage.getItem('chatHistory');
     return saved ? JSON.parse(saved) : [];
@@ -13,12 +13,10 @@ function App() {
   const [selectedChat, setSelectedChat] = useState(null);
   const scrollRef = useRef(null);
 
-  // Auto-scroll
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Load chat when switching
   useEffect(() => {
     if (selectedChat) {
       const chat = history.find((h) => h.id === selectedChat);
@@ -30,7 +28,7 @@ function App() {
   }, [selectedChat]);
 
   const saveCurrentChat = (newHistory = history) => {
-    if (!messages.length) return;
+    if (!messages.length || !docId) return;
     const existing = newHistory.find((h) => h.id === docId);
     const updated = existing
       ? newHistory.map((h) => (h.id === docId ? { id: docId, messages, docId } : h))
@@ -98,7 +96,15 @@ function App() {
             }}
           >
             Chat #{h.id.slice(-4)}
-            <button className="ml-2 text-red-500" onClick={(e) => { e.stopPropagation(); handleDelete(h.id); }}>🗑️</button>
+            <button
+              className="ml-2 text-red-500"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete(h.id);
+              }}
+            >
+              🗑️
+            </button>
           </div>
         ))}
       </div>
@@ -108,8 +114,12 @@ function App() {
         <div className="flex justify-between p-4 border-b">
           <h1 className="text-2xl font-bold">ATOZ Legal Chatbot</h1>
           <div>
-            <button onClick={() => setDarkMode(!darkMode)} className="mr-2">{darkMode ? '☀️ Light' : '🌙 Dark'}</button>
-            <button onClick={handleReset} className="bg-yellow-400 px-3 py-1 rounded">Reset</button>
+            <button onClick={() => setDarkMode(!darkMode)} className="mr-2">
+              {darkMode ? '☀️ Light' : '🌙 Dark'}
+            </button>
+            <button onClick={handleReset} className="bg-yellow-400 px-3 py-1 rounded">
+              Reset
+            </button>
           </div>
         </div>
 
@@ -133,7 +143,9 @@ function App() {
             className="flex-1 p-2 rounded border"
             placeholder="Ask your legal question..."
           />
-          <button onClick={handleSend} className="bg-green-500 text-white px-4 py-1 rounded">Send</button>
+          <button onClick={handleSend} className="bg-green-500 text-white px-4 py-1 rounded">
+            Send
+          </button>
         </div>
       </div>
     </div>
