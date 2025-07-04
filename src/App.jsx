@@ -32,7 +32,8 @@ function App() {
         setDocId(chat.docId);
       }
     }
-  }, [selectedChat, history]);
+    // eslint-disable-next-line
+  }, [selectedChat]);
 
   // Save pdf mapping
   const savePdfMap = (nextMap) => {
@@ -57,7 +58,7 @@ function App() {
     setSelectedChat(id);
   };
 
-  // Handle file upload
+  // Handle file upload (PDF per chat)
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -68,9 +69,10 @@ function App() {
       body: formData,
     });
     const data = await res.json();
+    // Bind PDF only to current docId (per chat)
     const newPdfMap = { ...pdfMap, [docId]: { name: file.name, id: data.doc_id } };
     savePdfMap(newPdfMap);
-    setDocId(data.doc_id);
+    setDocId(data.doc_id); // Sync docId in case backend generates new one
     setMessages((prev) => [...prev, { sender: "bot", text: data.message }]);
     saveCurrentChat(history, [...messages, { sender: "bot", text: data.message }], data.doc_id);
   };
@@ -110,7 +112,7 @@ function App() {
     setSelectedChat(null);
   };
 
-  // Delete chat everywhere
+  // Delete chat everywhere (with PDF unbind)
   const handleDelete = (id) => {
     const updated = history.filter((h) => h.id !== id);
     localStorage.setItem("chatHistory", JSON.stringify(updated));
@@ -134,37 +136,41 @@ function App() {
       {/* Sidebar */}
       <div className="w-64 p-4 border-r overflow-y-auto bg-white dark:bg-gray-900">
         <h2 className="text-xl font-bold mb-2">Saved Chats</h2>
-        {history.map((h) => (
-          <div
-            key={h.id}
-            className={`flex items-center justify-between cursor-pointer p-2 rounded mb-1 ${
-              selectedChat === h.id ? "bg-blue-500 text-white" : "hover:bg-gray-200 dark:hover:bg-gray-800"
-            }`}
-            onClick={() => handleSwitchChat(h.id)}
-          >
-            <span>
-              Chat #{h.id.slice(-4)}
-              {pdfMap[h.id]?.name ? (
-                <span className="ml-1 text-xs text-purple-700 dark:text-purple-300">[{pdfMap[h.id].name}]</span>
-              ) : null}
-            </span>
-            <button
-              className="ml-2 text-red-500 dark:text-red-300"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete(h.id);
-              }}
+        <div className="flex flex-col gap-1">
+          {history.map((h) => (
+            <div
+              key={h.id}
+              className={`flex items-center justify-between cursor-pointer p-2 rounded ${
+                selectedChat === h.id ? "bg-blue-500 text-white" : "hover:bg-gray-200 dark:hover:bg-gray-800"
+              }`}
+              onClick={() => handleSwitchChat(h.id)}
             >
-              🗑️
-            </button>
-          </div>
-        ))}
+              <span>
+                Chat #{h.id.slice(-4)}
+                {pdfMap[h.id]?.name ? (
+                  <span className="ml-1 text-xs text-purple-700 dark:text-purple-300">
+                    [{pdfMap[h.id].name}]
+                  </span>
+                ) : null}
+              </span>
+              <button
+                className="ml-2 text-red-500 dark:text-red-300"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(h.id);
+                }}
+              >
+                🗑️
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Main Chat */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b">
+        <div className="flex justify-between items-center p-4 border-b bg-white dark:bg-gray-900">
           <h1 className="text-2xl font-bold">ATOZ Legal Chatbot</h1>
           <div className="flex items-center gap-2">
             <button onClick={() => setDarkMode(!darkMode)}>
@@ -178,6 +184,7 @@ function App() {
               ref={fileInputRef}
               onChange={handleFileUpload}
               className="hidden"
+              accept="application/pdf"
             />
             <button
               className="bg-purple-500 text-white px-3 py-1 rounded"
@@ -201,13 +208,11 @@ function App() {
               className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`
-                  max-w-xl px-4 py-3 rounded-2xl shadow
-                  ${m.sender === "user"
+                className={`max-w-xl px-4 py-3 rounded-2xl shadow ${
+                  m.sender === "user"
                     ? "bg-blue-500 text-white rounded-br-none ml-auto"
                     : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-none mr-auto"
-                  }
-                `}
+                }`}
               >
                 {m.text}
               </div>
