@@ -5,13 +5,14 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [docId, setDocId] = useState(() => Date.now().toString());
+  const [docId, setDocId] = useState(null);
   const [history, setHistory] = useState(() => {
     const saved = localStorage.getItem('chatHistory');
     return saved ? JSON.parse(saved) : [];
   });
   const [selectedChat, setSelectedChat] = useState(null);
   const scrollRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -28,7 +29,7 @@ function App() {
   }, [selectedChat]);
 
   const saveCurrentChat = (newHistory = history) => {
-    if (!messages.length || !docId) return;
+    if (!messages.length) return;
     const existing = newHistory.find((h) => h.id === docId);
     const updated = existing
       ? newHistory.map((h) => (h.id === docId ? { id: docId, messages, docId } : h))
@@ -81,6 +82,20 @@ function App() {
     }
   };
 
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('https://legal-bot-backend.onrender.com/upload', {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await res.json();
+    setDocId(data.doc_id);
+    setMessages((prev) => [...prev, { sender: 'bot', text: data.message }]);
+  };
+
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'} flex`}>
       {/* Sidebar */}
@@ -96,15 +111,7 @@ function App() {
             }}
           >
             Chat #{h.id.slice(-4)}
-            <button
-              className="ml-2 text-red-500"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete(h.id);
-              }}
-            >
-              🗑️
-            </button>
+            <button className="ml-2 text-red-500" onClick={(e) => { e.stopPropagation(); handleDelete(h.id); }}>🗑️</button>
           </div>
         ))}
       </div>
@@ -113,21 +120,27 @@ function App() {
       <div className="flex-1 flex flex-col">
         <div className="flex justify-between p-4 border-b">
           <h1 className="text-2xl font-bold">ATOZ Legal Chatbot</h1>
-          <div>
-            <button onClick={() => setDarkMode(!darkMode)} className="mr-2">
-              {darkMode ? '☀️ Light' : '🌙 Dark'}
-            </button>
-            <button onClick={handleReset} className="bg-yellow-400 px-3 py-1 rounded">
-              Reset
-            </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setDarkMode(!darkMode)}>{darkMode ? '☀️ Light' : '🌙 Dark'}</button>
+            <button onClick={handleReset} className="bg-yellow-400 px-3 py-1 rounded">Reset</button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <button
+              className="bg-purple-500 text-white px-3 py-1 rounded"
+              onClick={() => fileInputRef.current.click()}
+            >Upload</button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto flex flex-col p-4 space-y-4">
           {messages.map((m, i) => (
             <div
               key={i}
-              className={`p-3 rounded-lg max-w-xl ${m.sender === 'user' ? 'bg-blue-100 self-end' : 'bg-gray-100 self-start'}`}
+              className={`p-3 rounded-lg max-w-xl whitespace-pre-line ${m.sender === 'user' ? 'bg-blue-100 self-end text-right' : 'bg-gray-100 self-start text-left'}`}
             >
               {m.text}
             </div>
@@ -143,9 +156,7 @@ function App() {
             className="flex-1 p-2 rounded border"
             placeholder="Ask your legal question..."
           />
-          <button onClick={handleSend} className="bg-green-500 text-white px-4 py-1 rounded">
-            Send
-          </button>
+          <button onClick={handleSend} className="bg-green-500 text-white px-4 py-1 rounded">Send</button>
         </div>
       </div>
     </div>
