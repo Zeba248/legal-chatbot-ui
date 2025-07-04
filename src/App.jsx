@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 
-export default function LegalChatbot() {
+function App() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [docId, setDocId] = useState(null);
+  // initialize a unique docId immediately so UI always renders
+  const [docId, setDocId] = useState(() => Date.now().toString());
   const [history, setHistory] = useState(() => {
     const saved = localStorage.getItem('chatHistory');
     return saved ? JSON.parse(saved) : [];
@@ -14,21 +15,16 @@ export default function LegalChatbot() {
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // On mount initialize a new chat if none exists
-  useEffect(() => {
-    if (!docId) {
-      handleReset();
-    }
-  }, []);
-
-  // Auto-scroll on new messages
+  // Auto-scroll to bottom on every new message
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Load chat on sidebar selection
+  // Persist and load chat when switching
   useEffect(() => {
     if (selectedChat) {
+      // auto-save current before switching
+      saveCurrentChat();
       const chat = history.find((h) => h.id === selectedChat);
       if (chat) {
         setMessages(chat.messages);
@@ -107,63 +103,72 @@ export default function LegalChatbot() {
   };
 
   return (
-    <div className={`min-h-screen flex ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'}`}>
+    <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'} flex`}>
       {/* Sidebar */}
-      <aside className="w-64 p-4 border-r overflow-y-auto">
+      <div className="w-64 p-4 border-r overflow-y-auto">
         <h2 className="text-xl font-bold mb-2">Saved Chats</h2>
         {history.map((h) => (
           <div
             key={h.id}
-            className={`cursor-pointer p-2 rounded mb-1 flex justify-between items-center ${selectedChat === h.id ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`}
-            onClick={() => {
-              saveCurrentChat();
-              setSelectedChat(h.id);
-            }}
+            className={`cursor-pointer p-2 rounded mb-1 ${selectedChat === h.id ? 'bg-blue-500 text-white' : 'hover:bg-gray-200'}`}
+            onClick={() => setSelectedChat(h.id)}
           >
-            <span>Chat #{h.id.slice(-4)}</span>
-            <button onClick={(e) => { e.stopPropagation(); handleDelete(h.id); }} className="text-red-500">🗑️</button>
+            Chat #{h.id.slice(-4)}
+            <button
+              className="ml-2 text-red-500"
+              onClick={(e) => { e.stopPropagation(); handleDelete(h.id); }}
+            >🗑️</button>
           </div>
         ))}
-      </aside>
+      </div>
 
-      {/* Main Chat Area */}
+      {/* Main Chat */}
       <div className="flex-1 flex flex-col">
-        <header className="flex justify-between items-center p-4 border-b">
+        <div className="flex justify-between p-4 border-b">
           <h1 className="text-2xl font-bold">ATOZ Legal Chatbot</h1>
           <div className="flex items-center gap-2">
-            <button onClick={() => setDarkMode(!darkMode)} className="px-2 py-1 rounded">{darkMode ? '☀️ Light' : '🌙 Dark'}</button>
+            <button onClick={() => setDarkMode(!darkMode)}>
+              {darkMode ? '☀️ Light' : '🌙 Dark'}
+            </button>
             <button onClick={handleReset} className="bg-yellow-400 px-3 py-1 rounded">Reset</button>
-            <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
-            <button onClick={() => fileInputRef.current.click()} className="bg-purple-500 text-white px-3 py-1 rounded">Upload</button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <button
+              className="bg-purple-500 text-white px-3 py-1 rounded"
+              onClick={() => fileInputRef.current.click()}
+            >Upload</button>
           </div>
-        </header>
+        </div>
 
-        <main className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((m, i) => (
             <div
               key={i}
-              className={`p-3 rounded-lg max-w-xl ${m.sender === 'user' ? 'bg-blue-100 self-end text-right ml-auto' : 'bg-gray-100 self-start text-left mr-auto'}`}
+              className={`p-3 rounded-lg max-w-xl ${m.sender === 'user' ? 'bg-blue-100 self-end text-right' : 'bg-gray-100 self-start text-left'}`}
             >
               {m.text}
             </div>
           ))}
           <div ref={scrollRef} />
-        </main>
+        </div>
 
-        <footer className="p-4 border-t flex gap-2">
+        <div className="p-4 border-t flex gap-2">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             className="flex-1 p-2 rounded border"
             placeholder="Ask your legal question..."
-            disabled={loading}
           />
-          <button onClick={handleSend} className="bg-green-500 text-white px-4 py-1 rounded" disabled={loading}>
-            {loading ? '...' : 'Send'}
-          </button>
-        </footer>
+          <button onClick={handleSend} className="bg-green-500 text-white px-4 py-1 rounded">Send</button>
+        </div>
       </div>
     </div>
   );
 }
+
+export default App;
