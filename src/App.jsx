@@ -14,7 +14,7 @@ function App() {
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Scroll to latest message
+  // Auto-scroll to latest message
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -41,7 +41,7 @@ function App() {
     // eslint-disable-next-line
   }, [messages, docId]);
 
-  // Save chat to localStorage (with docId and file)
+  // Save chat to localStorage (with docId)
   const saveCurrentChat = (customHistory) => {
     if (!docId) return;
     const newHistory = customHistory || history;
@@ -146,7 +146,7 @@ function App() {
     </div>
   );
 
-  // Chat area: user right, bot left
+  // Chat area: user right, bot left (bubble style)
   const renderMessages = () => (
     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-white dark:bg-gray-800">
       {messages.map((m, i) => (
@@ -171,7 +171,7 @@ function App() {
 
   // Header with upload, reset, dark mode
   const renderHeader = () => (
-    <div className="flex justify-between items-center p-4 border-b bg-white dark:bg-gray-900">
+    <div className="flex justify-between items-center p-4 border-b bg-white dark:bg-gray-900 relative">
       <h1 className="text-2xl font-bold text-center w-full">ATOZ Legal Chatbot</h1>
       <div className="flex items-center gap-2 absolute right-6">
         <button
