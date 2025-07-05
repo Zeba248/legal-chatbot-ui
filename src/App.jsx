@@ -64,11 +64,28 @@ function App() {
   };
 
   const handleReset = () => {
-    saveCurrentChat();
-    setMessages([]);
-    setDocId(null);
-    setSelectedChat(null);
-  };
+  if (messages.length) {
+    const updated = [...history];
+    const index = history.findIndex((h) => h.id === selectedChat?.id);
+    if (index !== -1) {
+      // Update existing saved chat
+      updated[index] = { ...history[index], messages };
+      setHistory(updated);
+    } else {
+      // Create new saved chat
+      const chatToSave = {
+        id: Date.now(),
+        title: messages[0]?.text.slice(0, 30),
+        messages,
+      };
+      setHistory((prev) => [...prev, chatToSave]);
+    }
+  }
+  setMessages([]);
+  setDocId(null);
+  setSelectedChat(null);
+};
+
 
   const handleSelectChat = (chat) => {
     saveCurrentChat();
