@@ -1,4 +1,4 @@
-// ✅ Final App.jsx with ChatGPT-style Memory + PDF per Chat + No Duplication + True Context Retention
+// ✅ Final App.jsx with ChatGPT-style Memory + PDF per Chat + No Duplication + True Context Retention (Now retains full message+pdf context)
 import { useState, useEffect, useRef } from "react";
 
 function App() {
@@ -37,14 +37,15 @@ function App() {
   const handleSend = async () => {
     if (!input.trim()) return;
     const userMsg = { sender: "user", text: input };
-    setMessages((prev) => [...prev, userMsg]);
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
     setInput("");
 
     try {
       const res = await fetch("https://legal-bot-backend.onrender.com/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: input, doc_id: docId }),
+        body: JSON.stringify({ question: input, doc_id: docId, history: updatedMessages }),
       });
       const data = await res.json();
       setMessages((prev) => [...prev, { sender: "bot", text: data.response }]);
