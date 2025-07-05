@@ -1,4 +1,4 @@
-// ✅ Updated App.jsx with Sidebar + Resume Chat + Upload + Chat Memory
+// ✅ Final App.jsx with Top-Right Toggle + Reset + Sidebar + Chat + Upload + Memory
 import { useState, useEffect, useRef } from "react";
 
 function App() {
@@ -8,6 +8,7 @@ function App() {
   const [docId, setDocId] = useState(null);
   const [history, setHistory] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
+  const [darkMode, setDarkMode] = useState(false);
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -80,54 +81,44 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen">
-      {/* ✅ Sidebar */}
-      <div className="w-64 p-4 border-r bg-white overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold">Saved Chats</h2>
-          <button className="text-green-600 font-bold" onClick={handleReset}>➕ New</button>
+    <div className={`${darkMode ? "bg-gray-900 text-white" : "bg-white text-black"} min-h-screen flex`}>
+      {/* Sidebar */}
+      <div className="w-60 p-4 border-r border-gray-300 space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="font-bold text-lg">Saved Chats</h2>
+          <button onClick={handleReset} className="text-green-600 font-semibold text-sm">+ New</button>
         </div>
-        <div className="flex flex-col gap-2">
-          {history.map((chat) => (
-            <div
-              key={chat.id}
-              className={`flex items-center justify-between p-2 rounded cursor-pointer ${
-                selectedChat?.id === chat.id ? "bg-blue-100" : "hover:bg-gray-100"
-              }`}
-              onClick={() => handleSelectChat(chat)}
-            >
-              <span className="text-sm font-medium truncate w-[80%]">
-                {chat.title || "Untitled Chat"}
-              </span>
-              <span
-                className="text-red-500 hover:text-red-700"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(chat.id);
-                }}
-              >
-                🗑️
-              </span>
+        <div className="space-y-2">
+          {history.map((h) => (
+            <div key={h.id} className="flex items-center justify-between cursor-pointer">
+              <span onClick={() => handleSelectChat(h)}>{h.title}</span>
+              <span onClick={() => handleDelete(h.id)} className="text-red-500">🗑️</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ✅ Chat Area */}
-      <div className="flex-1 p-4 flex flex-col">
-        <h1 className="text-xl font-bold mb-2 text-center">ATOZ Legal Chatbot</h1>
+      {/* Main Chat Area */}
+      <div className="flex-1 p-4">
+        {/* Header with toggles */}
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">ATOZ Legal Chatbot</h1>
+          <div className="flex gap-3">
+            <button onClick={handleReset} className="bg-yellow-400 text-white px-3 py-1 rounded">Reset</button>
+            <button onClick={() => setDarkMode(!darkMode)} className="bg-gray-600 text-white px-3 py-1 rounded">
+              {darkMode ? "Light" : "Dark"}
+            </button>
+          </div>
+        </div>
 
-        <div className="border rounded p-4 flex-1 overflow-y-auto bg-white">
+        {/* Chat Box */}
+        <div className="border rounded p-4 h-[400px] overflow-y-auto bg-white text-black">
           {messages.map((msg, idx) => (
             <div
               key={idx}
               className={`mb-2 ${msg.sender === "user" ? "text-right" : "text-left"}`}
             >
-              <span
-                className={`inline-block px-3 py-2 rounded max-w-[80%] whitespace-pre-wrap break-words ${
-                  msg.sender === "user" ? "bg-blue-100" : "bg-gray-100"
-                }`}
-              >
+              <span className={`inline-block px-3 py-2 rounded ${msg.sender === "user" ? "bg-blue-100" : "bg-gray-100"}`}>
                 {msg.text}
               </span>
             </div>
@@ -135,6 +126,7 @@ function App() {
           <div ref={scrollRef} />
         </div>
 
+        {/* Input */}
         <div className="flex gap-2 mt-4">
           <input
             type="text"
@@ -145,7 +137,7 @@ function App() {
             placeholder="Ask your legal question..."
           />
           <button onClick={handleSend} className="bg-blue-500 text-white px-4 rounded">Send</button>
-          <label className="bg-green-500 text-white px-3 rounded cursor-pointer">
+          <label className="bg-green-500 text-white px-4 rounded cursor-pointer">
             Upload
             <input type="file" className="hidden" onChange={handleUpload} />
           </label>
