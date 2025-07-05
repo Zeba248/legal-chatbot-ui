@@ -1,10 +1,9 @@
-// ✅ Final App.jsx with Sidebar, Toggle, Reset — Perfected UI + Delete Bug Fix + Auto-Save on Switch + No Duplicate Save
+// ✅ Final App.jsx with ChatGPT-style Memory + PDF per Chat + No Duplication
 import { useState, useEffect, useRef } from "react";
 
 function App() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [docId, setDocId] = useState(null);
   const [history, setHistory] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
@@ -15,11 +14,29 @@ function App() {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const saveCurrentChat = () => {
+    if (!messages.length) return;
+    setHistory((prev) => {
+      const existingIndex = prev.findIndex((c) => c.id === selectedChat?.id);
+      const updatedChat = {
+        id: selectedChat?.id || Date.now(),
+        title: messages[0]?.text.slice(0, 30),
+        messages,
+        docId,
+      };
+      if (existingIndex !== -1) {
+        const updated = [...prev];
+        updated[existingIndex] = updatedChat;
+        return updated;
+      }
+      return [...prev, updatedChat];
+    });
+  };
+
   const handleSend = async () => {
     if (!input.trim()) return;
     const userMsg = { sender: "user", text: input };
     setMessages((prev) => [...prev, userMsg]);
-    setLoading(true);
     setInput("");
 
     try {
@@ -32,8 +49,6 @@ function App() {
       setMessages((prev) => [...prev, { sender: "bot", text: data.response }]);
     } catch (err) {
       setMessages((prev) => [...prev, { sender: "bot", text: "⚠️ Error fetching response" }]);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -56,54 +71,27 @@ function App() {
     }
   };
 
-  const saveCurrentChat = () => {
-    if (messages.length && (!selectedChat || !history.find((h) => h.id === selectedChat.id))) {
-      const chatToSave = { id: Date.now(), title: messages[0]?.text.slice(0, 30), messages };
-      setHistory((prev) => [...prev, chatToSave]);
-    }
-  };
-
   const handleReset = () => {
-  if (messages.length) {
-    const updated = [...history];
-    const index = history.findIndex((h) => h.id === selectedChat?.id);
-    if (index !== -1) {
-      // Update existing saved chat
-      updated[index] = { ...history[index], messages };
-      setHistory(updated);
-    } else {
-      // Create new saved chat
-      const chatToSave = {
-        id: Date.now(),
-        title: messages[0]?.text.slice(0, 30),
-        messages,
-      };
-      setHistory((prev) => [...prev, chatToSave]);
-    }
-  }
-  setMessages([]);
-  setDocId(null);
-  setSelectedChat(null);
-};
-
+    saveCurrentChat();
+    setMessages([]);
+    setDocId(null);
+    setSelectedChat(null);
+  };
 
   const handleSelectChat = (chat) => {
     saveCurrentChat();
     setMessages(chat.messages);
-    setDocId(chat.id);
+    setDocId(chat.docId);
     setSelectedChat(chat);
   };
 
   const handleDelete = (id) => {
-    setHistory((prev) => {
-      const newHistory = prev.filter((h) => h.id !== id);
-      if (selectedChat?.id === id) {
-        setMessages([]);
-        setDocId(null);
-        setSelectedChat(null);
-      }
-      return newHistory;
-    });
+    setHistory((prev) => prev.filter((h) => h.id !== id));
+    if (selectedChat?.id === id) {
+      setMessages([]);
+      setDocId(null);
+      setSelectedChat(null);
+    }
   };
 
   return (
