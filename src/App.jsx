@@ -1,4 +1,4 @@
-// ✅ Final App.jsx with Sidebar, Toggle, Reset — Perfected UI (Improved Delete & Click Area)
+// ✅ Final App.jsx with Sidebar, Toggle, Reset — Perfected UI + Delete Bug Fix
 import { useState, useEffect, useRef } from "react";
 
 function App() {
@@ -58,7 +58,7 @@ function App() {
 
   const handleReset = () => {
     if (messages.length) {
-      const chatToSave = { id: docId, title: messages[0]?.text.slice(0, 30), messages };
+      const chatToSave = { id: Date.now(), title: messages[0]?.text.slice(0, 30), messages };
       setHistory((prev) => [...prev, chatToSave]);
     }
     setMessages([]);
@@ -73,12 +73,15 @@ function App() {
   };
 
   const handleDelete = (id) => {
-    setHistory((prev) => prev.filter((h) => h.id !== id));
-    if (selectedChat?.id === id) {
-      setMessages([]);
-      setDocId(null);
-      setSelectedChat(null);
-    }
+    setHistory((prev) => {
+      const newHistory = prev.filter((h) => h.id !== id);
+      if (selectedChat?.id === id) {
+        setMessages([]);
+        setDocId(null);
+        setSelectedChat(null);
+      }
+      return newHistory;
+    });
   };
 
   return (
@@ -91,22 +94,9 @@ function App() {
         </div>
         <div className="space-y-2">
           {history.map((h) => (
-            <div key={h.id} className="flex items-center justify-between group">
-              <span
-                onClick={() => handleSelectChat(h)}
-                className="flex-1 cursor-pointer pr-2"
-              >
-                {h.title}
-              </span>
-              <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(h.id);
-                }}
-                className="text-red-500 cursor-pointer group-hover:opacity-100 opacity-80"
-              >
-                🗑️
-              </span>
+            <div key={h.id} className="flex items-center justify-between cursor-pointer">
+              <span className="flex-1" onClick={() => handleSelectChat(h)}>{h.title}</span>
+              <span onClick={() => handleDelete(h.id)} className="text-red-500 ml-2 cursor-pointer">🗑️</span>
             </div>
           ))}
         </div>
