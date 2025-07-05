@@ -1,4 +1,4 @@
-// ✅ Final App.jsx with Sidebar, Toggle, Reset — Perfected UI + Delete Bug Fix
+// ✅ Final App.jsx with Sidebar, Toggle, Reset — Perfected UI + Delete Bug Fix + Auto-Save on Switch + No Duplicate Save
 import { useState, useEffect, useRef } from "react";
 
 function App() {
@@ -56,17 +56,22 @@ function App() {
     }
   };
 
-  const handleReset = () => {
-    if (messages.length) {
+  const saveCurrentChat = () => {
+    if (messages.length && (!selectedChat || !history.find((h) => h.id === selectedChat.id))) {
       const chatToSave = { id: Date.now(), title: messages[0]?.text.slice(0, 30), messages };
       setHistory((prev) => [...prev, chatToSave]);
     }
+  };
+
+  const handleReset = () => {
+    saveCurrentChat();
     setMessages([]);
     setDocId(null);
     setSelectedChat(null);
   };
 
   const handleSelectChat = (chat) => {
+    saveCurrentChat();
     setMessages(chat.messages);
     setDocId(chat.id);
     setSelectedChat(chat);
