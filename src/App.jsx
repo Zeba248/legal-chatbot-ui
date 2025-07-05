@@ -1,4 +1,4 @@
-// ✅ Final App.jsx with ChatGPT-style Memory + PDF per Chat + No Duplication
+// ✅ Final App.jsx with ChatGPT-style Memory + PDF per Chat + No Duplication + True Context Retention
 import { useState, useEffect, useRef } from "react";
 
 function App() {
@@ -17,9 +17,10 @@ function App() {
   const saveCurrentChat = () => {
     if (!messages.length) return;
     setHistory((prev) => {
-      const existingIndex = prev.findIndex((c) => c.id === selectedChat?.id);
+      const idToUse = selectedChat?.id || Date.now();
+      const existingIndex = prev.findIndex((c) => c.id === idToUse);
       const updatedChat = {
-        id: selectedChat?.id || Date.now(),
+        id: idToUse,
         title: messages[0]?.text.slice(0, 30),
         messages,
         docId,
