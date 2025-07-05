@@ -1,4 +1,4 @@
-// ✅ Final App.jsx with Sidebar, Toggle, Reset — Perfected UI
+// ✅ Final App.jsx with Sidebar, Toggle, Reset — Perfected UI (Improved Delete & Click Area)
 import { useState, useEffect, useRef } from "react";
 
 function App() {
@@ -77,6 +77,7 @@ function App() {
     if (selectedChat?.id === id) {
       setMessages([]);
       setDocId(null);
+      setSelectedChat(null);
     }
   };
 
@@ -90,9 +91,22 @@ function App() {
         </div>
         <div className="space-y-2">
           {history.map((h) => (
-            <div key={h.id} className="flex items-center justify-between cursor-pointer">
-              <span onClick={() => handleSelectChat(h)}>{h.title}</span>
-              <span onClick={() => handleDelete(h.id)} className="text-red-500">🗑️</span>
+            <div key={h.id} className="flex items-center justify-between group">
+              <span
+                onClick={() => handleSelectChat(h)}
+                className="flex-1 cursor-pointer pr-2"
+              >
+                {h.title}
+              </span>
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(h.id);
+                }}
+                className="text-red-500 cursor-pointer group-hover:opacity-100 opacity-80"
+              >
+                🗑️
+              </span>
             </div>
           ))}
         </div>
