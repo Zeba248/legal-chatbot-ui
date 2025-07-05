@@ -135,7 +135,7 @@ function App() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            className="flex-1 border p-2 rounded"
+            className={`flex-1 border p-2 rounded ${darkMode ? "bg-gray-900 text-white placeholder-gray-400" : "bg-white text-black"}`}
             placeholder="Ask your legal question..."
           />
           <button onClick={handleSend} className="bg-blue-500 text-white px-4 rounded">Send</button>
