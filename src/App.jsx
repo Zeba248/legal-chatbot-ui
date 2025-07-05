@@ -1,4 +1,4 @@
-// ✅ Final App.jsx with Top-Right Toggle + Reset + Sidebar + Chat + Upload + Memory
+// ✅ Final App.jsx with Sidebar, Toggle, Reset — Perfected UI
 import { useState, useEffect, useRef } from "react";
 
 function App() {
@@ -105,20 +105,22 @@ function App() {
           <h1 className="text-2xl font-bold">ATOZ Legal Chatbot</h1>
           <div className="flex gap-3">
             <button onClick={handleReset} className="bg-yellow-400 text-white px-3 py-1 rounded">Reset</button>
-            <button onClick={() => setDarkMode(!darkMode)} className="bg-gray-600 text-white px-3 py-1 rounded">
-              {darkMode ? "Light" : "Dark"}
-            </button>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" className="sr-only peer" checked={darkMode} onChange={() => setDarkMode(!darkMode)} />
+              <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+              <span className="ml-2 text-sm">{darkMode ? "Dark" : "Light"}</span>
+            </label>
           </div>
         </div>
 
         {/* Chat Box */}
-        <div className="border rounded p-4 h-[400px] overflow-y-auto bg-white text-black">
+        <div className={`${darkMode ? "bg-gray-800 text-white" : "bg-white text-black"} border rounded p-4 h-[400px] overflow-y-auto`}>
           {messages.map((msg, idx) => (
             <div
               key={idx}
               className={`mb-2 ${msg.sender === "user" ? "text-right" : "text-left"}`}
             >
-              <span className={`inline-block px-3 py-2 rounded ${msg.sender === "user" ? "bg-blue-100" : "bg-gray-100"}`}>
+              <span className={`inline-block px-3 py-2 rounded ${msg.sender === "user" ? "bg-blue-500 text-white" : "bg-gray-200 text-black"}`}>
                 {msg.text}
               </span>
             </div>
