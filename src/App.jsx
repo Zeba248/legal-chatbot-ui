@@ -1,4 +1,3 @@
-// ✅ Final App.jsx with ChatGPT-style Memory + PDF per Chat + No Duplication + True Context Retention (Now retains full message+pdf context)
 import { useState, useEffect, useRef } from "react";
 
 function App() {
@@ -17,7 +16,7 @@ function App() {
   const saveCurrentChat = () => {
     if (!messages.length) return;
     setHistory((prev) => {
-      const idToUse = selectedChat?.id || Date.now();
+      const idToUse = selectedChat?.id || docId || Date.now();
       const existingIndex = prev.findIndex((c) => c.id === idToUse);
       const updatedChat = {
         id: idToUse,
@@ -45,7 +44,11 @@ function App() {
       const res = await fetch("https://legal-bot-backend.onrender.com/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: input, doc_id: docId, history: updatedMessages }),
+        body: JSON.stringify({
+          question: input,
+          doc_id: docId,
+          history: updatedMessages,
+        }),
       });
       const data = await res.json();
       setMessages((prev) => [...prev, { sender: "bot", text: data.response }]);
@@ -116,7 +119,7 @@ function App() {
 
       {/* Main Chat Area */}
       <div className="flex-1 p-4">
-        {/* Header with toggles */}
+        {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">ATOZ Legal Chatbot</h1>
           <div className="flex gap-3">
@@ -132,10 +135,7 @@ function App() {
         {/* Chat Box */}
         <div className={`${darkMode ? "bg-gray-800 text-white" : "bg-white text-black"} border rounded p-4 h-[400px] overflow-y-auto`}>
           {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`mb-2 ${msg.sender === "user" ? "text-right" : "text-left"}`}
-            >
+            <div key={idx} className={`mb-2 ${msg.sender === "user" ? "text-right" : "text-left"}`}>
               <span className={`inline-block px-3 py-2 rounded ${msg.sender === "user" ? "bg-blue-500 text-white" : "bg-gray-200 text-black"}`}>
                 {msg.text}
               </span>
